@@ -192,3 +192,51 @@ def test_missing_optional_fields_do_not_crash():
     assert result.video_id == VID
     assert result.needs_review is True
     assert result.available_heights == []
+
+
+# --- dates -----------------------------------------------------------------
+
+
+def test_iso_date_converts_ytdlp_format():
+    from app.services.probe import iso_date
+
+    assert iso_date("20240715") == "2024-07-15"
+
+
+def test_iso_date_rejects_junk():
+    from app.services.probe import iso_date
+
+    for value in ("", None, "2024", "not-a-date", "202407155", 20240715.0):
+        assert iso_date(value) is None, value
+
+
+def test_full_upload_date_is_captured():
+    result = extract_metadata(info())
+    assert result.upload_date == "2024-07-15"
+    assert result.release_date is None
+
+
+def test_release_date_is_captured_when_present():
+    result = extract_metadata(info(release_date="20190612"))
+    assert result.release_date == "2019-06-12"
+    assert result.upload_date == "2024-07-15"
+
+
+def test_year_prefers_the_release_date_over_the_upload_date():
+    """A re-upload's upload date can be years after the song came out."""
+    assert extract_metadata(info(release_date="20190612")).year == 2019
+
+
+def test_year_falls_back_to_the_upload_date():
+    assert extract_metadata(info()).year == 2024
+
+
+def test_explicit_release_year_still_wins():
+    assert extract_metadata(info(release_year=2015, release_date="20190612")).year == 2015
+
+
+def test_missing_dates_do_not_crash():
+    result = extract_metadata({"id": VID, "title": "x"})
+    assert result.upload_date is None
+    assert result.release_date is None
+    assert result.year is None

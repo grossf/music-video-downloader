@@ -77,3 +77,21 @@ def test_roundtrip_write_and_read(tmp_path):
     assert data["label"] == "JYP"
     assert data["video_id"] == "abc"
     assert "Performance" in data["tags"]
+
+
+def test_premiered_carries_the_full_release_date():
+    """<year> alone loses the month and day; Jellyfin reads <premiered>."""
+    root = parse(build_nfo(video_id="a", title="S", year=2024, premiered="2024-07-15"))
+    assert root.findtext("premiered") == "2024-07-15"
+    assert root.findtext("year") == "2024"
+
+
+def test_premiered_is_omitted_when_unknown():
+    root = parse(build_nfo(video_id="a", title="S", year=2024))
+    assert root.find("premiered") is None
+
+
+def test_premiered_survives_a_roundtrip(tmp_path):
+    path = tmp_path / "x.nfo"
+    write_nfo(path, video_id="a", title="S", premiered="2024-07-15")
+    assert read_nfo(path)["premiered"] == "2024-07-15"

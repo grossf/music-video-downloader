@@ -23,6 +23,7 @@ def build_nfo(
     title: str | None,
     artist: str | None = None,
     year: int | None = None,
+    premiered: str | None = None,
     video_type: str = "mv",
     label: str | None = None,
     plot: str | None = None,
@@ -39,6 +40,9 @@ def build_nfo(
     add("title", title or video_id)
     add("artist", artist)
     add("year", year)
+    # Jellyfin reads <premiered> as the full release date; <year> alone loses
+    # the month and day.
+    add("premiered", premiered)
     # <studio> carries the label semantically; the duplicate <tag> below is
     # what actually makes it filterable in the Jellyfin UI.
     add("studio", label)
@@ -81,6 +85,7 @@ def read_nfo(path: Path) -> dict:
         "title": text("title"),
         "artist": text("artist"),
         "year": int(text("year")) if (text("year") or "").isdigit() else None,
+        "premiered": text("premiered"),
         "label": text("studio"),
         "video_id": text("uniqueid"),
         "tags": [el.text for el in root.findall("tag") if el.text],

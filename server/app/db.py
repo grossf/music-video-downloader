@@ -77,6 +77,11 @@ CREATE TABLE IF NOT EXISTS videos (
                                        'behind','other')),
     label              TEXT,
     year               INTEGER,
+    -- ISO YYYY-MM-DD. upload_date is when it went up on YouTube;
+    -- release_date is the actual release when YouTube reports one,
+    -- which differs for re-uploads and remasters.
+    upload_date        TEXT,
+    release_date       TEXT,
     duration           INTEGER,
 
     status             TEXT    NOT NULL DEFAULT 'queued'
@@ -132,6 +137,8 @@ DEFAULT_PROFILE = {
 # (table, column, definition) — applied only when the column is missing.
 MIGRATIONS = [
     ("profiles", "is_default", "INTEGER NOT NULL DEFAULT 0"),
+    ("videos", "upload_date", "TEXT"),
+    ("videos", "release_date", "TEXT"),
 ]
 
 

@@ -209,13 +209,21 @@ async def video_detail(request: Request, video_id: str):
             channel = dict(found)
             channel_profile_name = channel.get("profile_name")
 
+    channel_defaults = {
+        "label": (channel or {}).get("default_label"),
+        # The display name, not the raw enum — "Dance Practice", not
+        # "dance_practice".
+        "type": TYPE_TAGS.get((channel or {}).get("default_type")),
+        "profile": channel_profile_name,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="detail.html",
         context={
             "v": to_view(row),
             "channel": channel,
-            "channel_profile_name": channel_profile_name,
+            "channel_defaults": channel_defaults,
             "profile": profiles_service.get_profile(row["profile_id"])
             if row["profile_id"]
             else None,

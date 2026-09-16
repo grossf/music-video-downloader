@@ -23,6 +23,7 @@ from app.services import jellyfin, videos
 from app.services.formats import compile_selector, describe
 from app.services.naming import build_paths, place_file
 from app.services.nfo import write_nfo
+from app.services.probe import dates_from
 
 log = logging.getLogger(__name__)
 
@@ -144,6 +145,7 @@ def download(video: dict) -> dict:
         raise RuntimeError("yt-dlp produced no media file in " + str(staging))
 
     requested = (info.get("requested_downloads") or [{}])[0]
+    upload_date, release_date = dates_from(info)
 
     def pick(key):
         return requested.get(key) if requested.get(key) is not None else info.get(key)
@@ -158,6 +160,8 @@ def download(video: dict) -> dict:
         "fps": pick("fps"),
         "duration": info.get("duration"),
         "year": info.get("release_year"),
+        "upload_date": upload_date,
+        "release_date": release_date,
         "plot": info.get("description"),
         "filesize": media.stat().st_size,
     }
@@ -191,6 +195,7 @@ def finalise(video: dict, result: dict) -> dict:
         title=video.get("title"),
         artist=video.get("artist"),
         year=video.get("year") or result.get("year"),
+        premiered=result.get("release_date") or result.get("upload_date"),
         video_type=video.get("type") or "mv",
         label=video.get("label"),
         plot=(result.get("plot") or "")[:2000] or None,
@@ -210,6 +215,8 @@ def finalise(video: dict, result: dict) -> dict:
         "downloaded_fps": result.get("fps"),
         "filesize": result.get("filesize"),
         "duration": video.get("duration") or result.get("duration"),
+        "upload_date": result.get("upload_date"),
+        "release_date": result.get("release_date"),
     }
 
 

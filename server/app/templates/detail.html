@@ -87,24 +87,38 @@
     <dl>
       <dt>Video ID</dt><dd><code>{{ v.video_id }}</code></dd>
       <dt>Channel</dt>
-      <dd>
-        {% if channel %}
-          {{ channel.name or channel.channel_id }}
-          <div class="sub">
-            defaults: {{ channel.default_label or "no label" }} /
-            {{ channel.default_type or "no type" }} /
-            {{ channel_profile_name or "no profile" }}
-          </div>
-        {% else %}
-          <span class="sub">—</span>
-        {% endif %}
-      </dd>
+      <dd>{% if channel %}{{ channel.name or channel.channel_id }}{% else %}—{% endif %}</dd>
       <dt>Label</dt><dd>{{ v.label or "—" }}</dd>
+      <dt>Uploaded</dt><dd>{{ v.upload_date or "—" }}</dd>
+      {% if v.release_date %}
+        <dt>Released</dt><dd>{{ v.release_date }}</dd>
+      {% endif %}
       <dt>Year</dt><dd>{{ v.year or "—" }}</dd>
       <dt>Added via</dt><dd>{{ v.source }}</dd>
       <dt>Retries</dt><dd>{{ v.retry_count }}</dd>
     </dl>
   </section>
+
+  {% if channel %}
+  <section class="panel">
+    <h2>Channel defaults</h2>
+    <div class="sub" style="margin-bottom:.8rem">
+      What <strong>{{ channel.name or channel.channel_id }}</strong> pre-fills
+      the next time you queue a video from it. Learned from what you entered
+      the first time, and never overwritten once set.
+    </div>
+    <dl>
+      <dt>Label</dt>
+      <dd>{{ channel_defaults.label or "not learned yet" }}</dd>
+      <dt>Type</dt>
+      <dd>{{ channel_defaults.type or "not learned yet" }}</dd>
+      <dt>Profile</dt>
+      <dd>
+        {{ channel_defaults.profile or "none — the global default is used" }}
+      </dd>
+    </dl>
+  </section>
+  {% endif %}
 
   <section class="panel">
     <h2>Files</h2>

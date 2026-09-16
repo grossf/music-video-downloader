@@ -303,6 +303,9 @@ def update_metadata(
         title=title,
         artist=artist,
         year=year if year is not None else row["year"],
+        # Carried through explicitly: an edit rewrites the whole NFO, so
+        # anything not passed here is silently lost from the file.
+        premiered=row["release_date"] or row["upload_date"],
         video_type=video_type,
         label=label,
         runtime=row["duration"],

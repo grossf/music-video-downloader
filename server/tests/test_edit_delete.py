@@ -188,3 +188,37 @@ def test_enqueue_after_delete_requeues(db):
     again = videos.enqueue(video_id="aaaaaaaaaaa", artist="A", title="Song")
     assert again["status"] == "queued"
     assert again["already_present"] is False
+
+
+def test_edit_preserves_the_premiered_date_in_the_nfo(db):
+    """An edit rewrites the whole NFO, so anything not carried through
+    explicitly is silently lost from the file."""
+    from pathlib import Path
+
+    make_done_video(artist="OLDNAME", title="Song")
+    videos.mark_done(
+        "aaaaaaaaaaa", upload_date="2024-07-15", release_date="2019-06-12"
+    )
+
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="NEWNAME", title="Song")
+
+    data = read_nfo(Path(updated["nfo_path"]))
+    assert data["premiered"] == "2019-06-12", "release date must survive an edit"
+
+
+def test_edit_falls_back_to_the_upload_date_when_no_release_date(db):
+    from pathlib import Path
+
+    make_done_video(artist="OLDNAME", title="Song")
+    videos.mark_done("aaaaaaaaaaa", upload_date="2024-07-15")
+
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="NEWNAME", title="Song")
+    assert read_nfo(Path(updated["nfo_path"]))["premiered"] == "2024-07-15"
+
+
+def test_edit_without_any_date_does_not_crash(db):
+    from pathlib import Path
+
+    make_done_video(artist="OLDNAME", title="Song")
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="NEWNAME", title="Song")
+    assert read_nfo(Path(updated["nfo_path"]))["premiered"] is None

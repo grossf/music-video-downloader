@@ -77,6 +77,10 @@ class ProbeResult:
     # which the caller reads as "use the global default".
     profile_id: int | None = None
     year: int | None = None
+    # ISO YYYY-MM-DD. release_date is only set when YouTube reports one, which
+    # is rarer than upload_date but more accurate for re-uploads.
+    upload_date: str | None = None
+    release_date: str | None = None
     duration: int | None = None
     thumbnail: str | None = None
     raw_title: str | None = None
@@ -169,6 +173,19 @@ def _first(value):
     return value
 
 
+def iso_date(value) -> str | None:
+    """yt-dlp reports dates as YYYYMMDD; store them as ISO YYYY-MM-DD."""
+    text = str(value or "").strip()
+    if len(text) != 8 or not text.isdigit():
+        return None
+    return f"{text[0:4]}-{text[4:6]}-{text[6:8]}"
+
+
+def dates_from(info: dict) -> tuple[str | None, str | None]:
+    """(upload_date, release_date), either of which may be absent."""
+    return iso_date(info.get("upload_date")), iso_date(info.get("release_date"))
+
+
 def extract_metadata(info: dict) -> ProbeResult:
     """Pure: turn a yt-dlp info dict into a ProbeResult."""
     video_id = info.get("id") or ""
@@ -194,10 +211,15 @@ def extract_metadata(info: dict) -> ProbeResult:
     # the label (HYBE LABELS, SMTOWN, JYP), so that fallback is actively wrong
     # and would quietly organise the library by record company.
 
+    upload_date, release_date = dates_from(info)
+
     year = info.get("release_year")
-    upload_date = info.get("upload_date") or ""
-    if not year and upload_date[:4].isdigit():
-        year = int(upload_date[:4])
+    if not year:
+        # Prefer the release date's year when there is one; a re-upload's
+        # upload date can be years after the song actually came out.
+        source = release_date or upload_date or ""
+        if source[:4].isdigit():
+            year = int(source[:4])
 
     heights = sorted(
         {f["height"] for f in (info.get("formats") or []) if f.get("height")}
@@ -213,6 +235,8 @@ def extract_metadata(info: dict) -> ProbeResult:
         title=(title or "").strip() or None,
         type=video_type if video_type in VIDEO_TYPES else "mv",
         year=int(year) if year else None,
+        upload_date=upload_date,
+        release_date=release_date,
         duration=info.get("duration"),
         thumbnail=info.get("thumbnail"),
         raw_title=raw_title,
