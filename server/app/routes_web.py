@@ -293,7 +293,11 @@ async def add_page(request: Request):
 
 @router.post("/add/probe", response_class=HTMLResponse)
 async def add_probe(request: Request, url: str = Form(...)):
-    context: dict = {"type_options": TYPE_OPTIONS, "known_labels": known_labels()}
+    context: dict = {
+        "type_options": TYPE_OPTIONS,
+        "known_labels": known_labels(),
+        "profile_options": profiles_service.list_profiles(),
+    }
     try:
         result = await probe_service.probe_async(url)
         context["p"] = result
@@ -319,6 +323,7 @@ async def add_submit(
     channel_id: str = Form(""),
     channel_name: str = Form(""),
     duration: str = Form(""),
+    profile_id: str = Form(""),
 ):
     videos.enqueue(
         video_id=video_id,
@@ -332,6 +337,7 @@ async def add_submit(
         channel_name=channel_name.strip() or None,
         needs_review=not artist.strip(),
         source="web",
+        profile_id=int(profile_id) if profile_id.strip().isdigit() else None,
     )
     return HTMLResponse(
         '<div class="panel">Queued. '

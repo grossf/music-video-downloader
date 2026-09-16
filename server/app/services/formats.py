@@ -78,6 +78,24 @@ def compile_selector(profile: dict) -> dict:
     }
 
 
+def summarize(profile: dict) -> str:
+    """Short label for a dropdown — the full selector is far too long for the
+    addon popup."""
+    if (profile.get("format_override") or "").strip():
+        return f"custom selector -> {profile.get('container') or 'mkv'}"
+
+    parts = []
+    max_height = profile.get("max_height")
+    parts.append(f"{max_height}p" if max_height else "best available")
+    codecs = _codec_list(profile.get("prefer_codecs"))
+    if codecs:
+        parts.append(codecs[0])
+    if profile.get("prefer_fps"):
+        parts.append("60fps")
+    parts.append(profile.get("container") or "mkv")
+    return " / ".join(parts)
+
+
 def describe(profile: dict) -> str:
     """One-line human summary for the profiles table."""
     compiled = compile_selector(profile)

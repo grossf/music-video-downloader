@@ -11,7 +11,9 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.db import default_profile_id
 from app.services import probe as probe_service
+from app.services import profiles as profiles_service
 from app.services import videos
 
 log = logging.getLogger(__name__)
@@ -41,6 +43,8 @@ class EnqueueRequest(BaseModel):
     duration: int | None = None
     channel_id: str | None = None
     channel_name: str | None = None
+    # Omitted means "use the global default".
+    profile_id: int | None = None
 
     model_config = {"populate_by_name": True}
 
@@ -56,6 +60,8 @@ def _public(row: dict) -> dict:
         "label": row["label"],
         "needs_review": bool(row["needs_review"]),
         "downloaded_height": row["downloaded_height"],
+        "profile_id": row["profile_id"],
+        "profile_name": row.get("profile_name"),
         "error": row["error"],
     }
 
@@ -78,6 +84,23 @@ async def probe_endpoint(url: str = Query(..., description="YouTube URL or video
     existing = videos.get(result.video_id)
     payload["existing"] = _public(existing) if existing else None
     return payload
+
+
+@router.get("/profiles", dependencies=[Depends(require_token)])
+async def list_profiles_endpoint():
+    """Download profiles, for the addon's profile picker."""
+    return {
+        "default_profile_id": default_profile_id(),
+        "profiles": [
+            {
+                "id": p["id"],
+                "name": p["name"],
+                "summary": p["summary"],
+                "is_default": bool(p["is_default"]),
+            }
+            for p in profiles_service.list_profiles()
+        ],
+    }
 
 
 @router.get("/videos", dependencies=[Depends(require_token)])
@@ -123,5 +146,6 @@ async def enqueue_endpoint(payload: EnqueueRequest):
         channel_name=payload.channel_name,
         needs_review=not bool(payload.artist),
         source="addon",
+        profile_id=payload.profile_id,
     )
     return _public(row) | {"already_present": row.get("already_present", False)}

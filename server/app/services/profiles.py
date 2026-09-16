@@ -9,7 +9,7 @@ import json
 import logging
 
 from app.db import default_profile_id, get_conn, set_default_profile
-from app.services.formats import compile_selector, describe
+from app.services.formats import compile_selector, describe, summarize
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,10 @@ def list_profiles() -> list[dict]:
             "  SELECT COUNT(*) FROM videos v WHERE v.profile_id = p.id"
             ") AS video_count FROM profiles p ORDER BY p.is_default DESC, p.name"
         ).fetchall()
-    return [dict(r) | {"selector": describe(dict(r))} for r in rows]
+    return [
+        dict(r) | {"selector": describe(dict(r)), "summary": summarize(dict(r))}
+        for r in rows
+    ]
 
 
 def get_profile(profile_id: int) -> dict | None:
@@ -53,7 +56,10 @@ def get_profile(profile_id: int) -> dict | None:
         ).fetchone()
     if row is None:
         return None
-    return dict(row) | {"selector": describe(dict(row))}
+    return dict(row) | {
+        "selector": describe(dict(row)),
+        "summary": summarize(dict(row)),
+    }
 
 
 def _clean(fields: dict) -> dict:

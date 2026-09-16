@@ -83,6 +83,7 @@ def remember_channel(
     name: str | None = None,
     label: str | None = None,
     video_type: str | None = None,
+    profile_id: int | None = None,
 ) -> None:
     """Record a channel and fill in its defaults.
 
@@ -100,18 +101,20 @@ def remember_channel(
         video_type = None
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT channel_id, name, default_label, default_type"
-            " FROM channels WHERE channel_id = ?",
+            "SELECT channel_id, name, default_label, default_type,"
+            " default_profile_id FROM channels WHERE channel_id = ?",
             (channel_id,),
         ).fetchone()
         if row is None:
             conn.execute(
-                "INSERT INTO channels (channel_id, name, default_label, default_type)"
-                " VALUES (?, ?, ?, ?)",
-                (channel_id, name, label, video_type),
+                "INSERT INTO channels (channel_id, name, default_label,"
+                " default_type, default_profile_id) VALUES (?, ?, ?, ?, ?)",
+                (channel_id, name, label, video_type, profile_id),
             )
-            log.info("learned channel %s (%s) label=%s type=%s",
-                     channel_id, name, label, video_type)
+            log.info(
+                "learned channel %s (%s) label=%s type=%s profile=%s",
+                channel_id, name, label, video_type, profile_id,
+            )
             return
 
         updates, params = [], []
@@ -124,6 +127,9 @@ def remember_channel(
         if video_type and not row["default_type"]:
             updates.append("default_type = ?")
             params.append(video_type)
+        if profile_id and not row["default_profile_id"]:
+            updates.append("default_profile_id = ?")
+            params.append(profile_id)
         if updates:
             params.append(channel_id)
             conn.execute(
@@ -154,10 +160,21 @@ def enqueue(
     returned untouched — re-downloading it is the upgrade worker's job, not
     this one's.
     """
+    # Only a profile that differs from the global default counts as a choice
+    # worth remembering. Recording the default itself would look deliberate and
+    # pin the channel to today's default forever — the same trap that made
+    # default_type stick on the fallback value.
+    global_default = default_profile_id()
+    deliberate_profile = profile_id if profile_id and profile_id != global_default else None
+
     remember_channel(
-        channel_id, name=channel_name, label=label, video_type=video_type
+        channel_id,
+        name=channel_name,
+        label=label,
+        video_type=video_type,
+        profile_id=deliberate_profile,
     )
-    profile_id = profile_id or default_profile_id()
+    profile_id = profile_id or global_default
     existing = get(video_id)
 
     if existing and existing["status"] in ("done", "queued", "downloading"):

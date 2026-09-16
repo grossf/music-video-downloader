@@ -170,6 +170,23 @@ browser.runtime.onMessage.addListener((message, sender) => {
       })();
     }
 
+    case "get-profiles": {
+      return (async () => {
+        try {
+          const response = await apiFetch("/api/profiles");
+          if (!response.ok) {
+            return { ok: false, error: `Profiles failed (${response.status})` };
+          }
+          return { ok: true, data: await response.json() };
+        } catch (err) {
+          return { ok: false, error: err.state || String(err) };
+        }
+      })();
+      /* Deliberately not cached: profiles are edited in the web UI, and a
+       * stale picker would silently queue downloads at the wrong quality.
+       * One small request per popup open is cheaper than that bug. */
+    }
+
     case "probe": {
       return (async () => {
         try {

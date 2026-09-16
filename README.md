@@ -128,9 +128,35 @@ python server/scripts/dev_download.py "https://www.youtube.com/watch?v=..." --fo
 | `JELLYFIN_API_KEY` | unset | Jellyfin API key |
 | `LOG_LEVEL` | `INFO` | |
 
+## Quality profiles
+
+A profile is a download template. Manage them at `/profiles`.
+
+Express one either through structured fields — max height, preferred codec,
+frame rate, container — or through a raw yt-dlp selector that bypasses all of
+them. The structured fields exist so the app can answer "is 2160p an upgrade
+on what I have?", which a raw string cannot; the override exists so the
+structured model never becomes a cage. Each profile shows the selector it
+compiles to.
+
+The codec list is ordered by hardware-decode support rather than efficiency:
+AV1 compresses better, but VP9 direct-plays on far more Jellyfin clients, so
+a 4K profile preferring VP9 avoids transcoding.
+
+A profile can be chosen per video — in the addon popup, in the web add form,
+or in the edit form. A choice that differs from the global default is
+remembered for that channel, so the second video from the same channel comes
+back pre-selected. Choosing the default itself is not treated as a preference,
+or the channel would be pinned to whatever the default happened to be that
+day.
+
+Changing a video's profile does not re-download it. Use **Redownload** on a
+completed video to fetch it again with the current profile; hand-corrected
+metadata is kept and only the file is replaced.
+
 ## Not built yet
 
-Quality profile management (the `profiles` table and the `downloaded_*`
-columns exist, but the prototype uses one hardcoded profile), the upgrade
-worker that re-checks whether YouTube has since published a higher resolution,
-per-channel admin, progress bars, playlists, pagination and search.
+The upgrade worker that re-checks whether YouTube has since published a higher
+resolution (`cutoff_height`, `allow_upgrades` and the `downloaded_*` columns
+exist to support it), per-channel admin, progress bars, playlists, pagination
+and search.

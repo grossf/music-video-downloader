@@ -55,6 +55,47 @@ function showDetail(parts) {
   el("detail").textContent = parts.filter(Boolean).join(" · ");
 }
 
+let profiles = [];
+
+/* `suggested` is the channel's remembered profile when it has one, otherwise
+ * the server's global default. */
+async function fillProfiles(suggested) {
+  const select = el("profile");
+  const result = await browser.runtime.sendMessage({ type: "get-profiles" });
+
+  if (!result.ok) {
+    /* The picker is a convenience, not a gate — a failed lookup must not stop
+     * you queueing the video with the server's default. */
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Server default";
+    select.append(option);
+    el("profile-summary").textContent = "Could not load profiles.";
+    return;
+  }
+
+  profiles = result.data.profiles;
+  const chosen = suggested || result.data.default_profile_id;
+
+  select.innerHTML = "";
+  for (const profile of profiles) {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.name + (profile.is_default ? " (default)" : "");
+    if (profile.id === chosen) option.selected = true;
+    select.append(option);
+  }
+  showProfileSummary();
+}
+
+function showProfileSummary() {
+  const selected = profiles.find((p) => String(p.id) === el("profile").value);
+  el("profile-summary").textContent = selected ? selected.summary : "";
+}
+
+el("profile").addEventListener("change", showProfileSummary);
+
 async function render() {
   context = await browser.runtime.sendMessage({ type: "get-popup-state" });
 
@@ -75,6 +116,7 @@ async function render() {
       v.artist || "no artist",
       v.title,
       v.downloaded_height ? `${v.downloaded_height}p` : null,
+      v.profile_name,
     ]);
     if (v.needs_review) {
       el("review-note").textContent = "This one is still flagged for review.";
@@ -114,10 +156,16 @@ async function prefillForm() {
   fillTypeOptions("mv");
   el("form").classList.remove("hidden");
 
-  const result = await browser.runtime.sendMessage({
-    type: "probe",
-    url: `https://www.youtube.com/watch?v=${context.videoId}`,
-  });
+  /* Both in flight at once: the dropdown appears immediately with the server
+   * default selected, and the probe refines it to the channel's remembered
+   * profile a second later. */
+  const [, result] = await Promise.all([
+    fillProfiles(null),
+    browser.runtime.sendMessage({
+      type: "probe",
+      url: `https://www.youtube.com/watch?v=${context.videoId}`,
+    }),
+  ]);
 
   if (!result.ok) {
     el("error").textContent = `Lookup failed: ${result.error}`;
@@ -131,6 +179,11 @@ async function prefillForm() {
   el("title").value = p.title || hints.pageTitle || "";
   el("label").value = p.label || "";
   fillTypeOptions(p.type || "mv");
+
+  if (p.profile_id) {
+    el("profile").value = String(p.profile_id);
+    showProfileSummary();
+  }
 
   showDetail([p.channel_name, p.available_heights?.length ? `up to ${Math.max(...p.available_heights)}p` : null]);
 
@@ -160,6 +213,7 @@ el("form").addEventListener("submit", async (event) => {
       duration: p.duration ?? null,
       channel_id: p.channel_id ?? null,
       channel_name: p.channel_name ?? null,
+      profile_id: el("profile").value ? Number(el("profile").value) : null,
     },
   });
 

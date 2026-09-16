@@ -55,6 +55,17 @@
       <label for="add-year">Year</label>
       <input id="add-year" name="year" value="{{ p.year or '' }}" inputmode="numeric">
     </div>
+    <div class="field">
+      <label for="add-profile">Quality profile</label>
+      <select id="add-profile" name="profile_id">
+        {% for prof in profile_options %}
+          <option value="{{ prof.id }}"
+            {% if p.profile_id == prof.id or (not p.profile_id and prof.is_default) %}selected{% endif %}>
+            {{ prof.name }} — {{ prof.summary }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
   </div>
 
   <datalist id="known-labels">

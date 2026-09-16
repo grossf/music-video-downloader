@@ -73,6 +73,9 @@ class ProbeResult:
     title: str | None = None
     type: str = "mv"
     label: str | None = None
+    # Suggested download profile. None means "no channel preference recorded",
+    # which the caller reads as "use the global default".
+    profile_id: int | None = None
     year: int | None = None
     duration: int | None = None
     thumbnail: str | None = None
@@ -229,13 +232,16 @@ def apply_channel_defaults(result: ProbeResult) -> ProbeResult:
         return result
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT default_label, default_type FROM channels WHERE channel_id = ?",
+            "SELECT default_label, default_type, default_profile_id"
+            " FROM channels WHERE channel_id = ?",
             (result.channel_id,),
         ).fetchone()
     if not row:
         return result
     if row["default_label"] and not result.label:
         result.label = row["default_label"]
+    if row["default_profile_id"] and not result.profile_id:
+        result.profile_id = row["default_profile_id"]
     # A type detected from the title is more specific than a channel default,
     # so the default only fills in when detection found nothing but "mv".
     if row["default_type"] and result.type == "mv":
