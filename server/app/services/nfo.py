@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from app.db import TYPE_TAGS
+from app.services.naming import display_title
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def build_nfo(
             return
         ET.SubElement(root, tag).text = str(value)
 
-    add("title", title or video_id)
+    add("title", display_title(title, video_type) or video_id)
     add("artist", artist)
     add("year", year)
     # Jellyfin reads <premiered> as the full release date; <year> alone loses

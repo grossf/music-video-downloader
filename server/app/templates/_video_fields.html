@@ -28,11 +28,6 @@
            inputmode="numeric">
   </div>
   <div class="field">
-    <label for="{{ prefix }}-version">Version</label>
-    <input id="{{ prefix }}-version" name="version" value="{{ v.version or '' }}"
-           placeholder="auto from type">
-  </div>
-  <div class="field">
     <label for="{{ prefix }}-profile">Profile</label>
     <select id="{{ prefix }}-profile" name="profile_id">
       {% for p in profile_options %}

@@ -71,7 +71,7 @@ def test_roundtrip_write_and_read(tmp_path):
         video_type="performance",
     )
     data = read_nfo(path)
-    assert data["title"] == "Song"
+    assert data["title"] == "Song (Performance)"
     assert data["artist"] == "TWICE"
     assert data["year"] == 2024
     assert data["studio"] == "JYP"
@@ -95,3 +95,12 @@ def test_premiered_survives_a_roundtrip(tmp_path):
     path = tmp_path / "x.nfo"
     write_nfo(path, video_id="a", title="S", premiered="2024-07-15")
     assert read_nfo(path)["premiered"] == "2024-07-15"
+
+
+def test_title_carries_the_type_so_versions_differ_in_jellyfin():
+    """Jellyfin lists by NFO title; without the suffix an MV and its
+    performance cut both read just "Song"."""
+    mv = parse(build_nfo(video_id="a", title="Song", video_type="mv"))
+    perf = parse(build_nfo(video_id="b", title="Song", video_type="performance"))
+    assert mv.findtext("title") == "Song"
+    assert perf.findtext("title") == "Song (Performance)"

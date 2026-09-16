@@ -6,7 +6,7 @@ from app.services.naming import (
     build_paths,
     prune_empty_dir,
     sanitize_component,
-    version_for,
+    display_title,
 )
 
 BS = chr(92)
@@ -54,12 +54,32 @@ def test_sanitize_truncates_to_byte_limit():
     assert len(out.encode("utf-8")) <= 150
 
 
-def test_version_derived_from_type():
-    assert version_for("mv") is None
-    assert version_for("performance") == "Performance"
-    assert version_for("dance_practice") == "Dance Practice"
-    # An explicit version overrides the type-derived one.
-    assert version_for("mv", "Japanese Ver.") == "Japanese Ver."
+def test_display_title_appends_the_type():
+    assert display_title("Song", "mv") == "Song"
+    assert display_title("Song", "performance") == "Song (Performance)"
+    assert display_title("Song", "dance_practice") == "Song (Dance Practice)"
+
+
+def test_display_title_does_not_double_a_hand_typed_suffix():
+    assert display_title("Song (Performance)", "performance") == "Song (Performance)"
+    assert display_title("Song (performance) ", "performance") == "Song (performance) "
+
+
+def test_display_title_keeps_other_brackets_and_still_adds_the_type():
+    assert display_title("Song (Band Ver.)", "performance") == "Song (Band Ver.) (Performance)"
+    assert display_title("Song (Band Ver.)", "mv") == "Song (Band Ver.)"
+
+
+def test_display_title_of_nothing_is_nothing():
+    assert display_title(None, "performance") is None
+
+
+def test_build_paths_does_not_double_a_hand_typed_suffix():
+    p = build_paths(
+        video_id="bbb", artist="TWICE", title="Song (Performance)",
+        video_type="performance", media_root=ROOT,
+    )
+    assert p.media.name == "TWICE - Song (Performance) [bbb].mkv"
 
 
 def test_build_paths_standard():
@@ -75,7 +95,7 @@ def test_build_paths_standard():
     assert p.thumb.name == "TWICE - Song Title [dQw4w9WgXcQ]-thumb.jpg"
 
 
-def test_build_paths_performance_gets_version_suffix():
+def test_build_paths_performance_gets_type_suffix():
     mv = build_paths(video_id="aaa", artist="TWICE", title="Song", media_root=ROOT)
     perf = build_paths(
         video_id="bbb",

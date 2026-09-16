@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from app.config import settings
@@ -103,12 +105,15 @@ def test_edit_supplying_an_artist_clears_needs_review(db):
     assert "_Unsorted" not in updated["file_path"]
 
 
-def test_edit_changing_type_adds_the_version_suffix(db):
+def test_edit_changing_type_adds_the_type_suffix(db):
     make_done_video(artist="A", title="Song", video_type="mv")
     updated = videos.update_metadata(
         "aaaaaaaaaaa", artist="A", title="Song", video_type="performance"
     )
     assert updated["file_path"].endswith("A - Song (Performance) [aaaaaaaaaaa].mkv")
+    # The stored title stays clean; only the file and NFO carry the suffix.
+    assert updated["title"] == "Song"
+    assert read_nfo(Path(updated["nfo_path"]))["title"] == "Song (Performance)"
 
 
 

@@ -68,7 +68,6 @@ CREATE TABLE IF NOT EXISTS videos (
 
     artist             TEXT,
     title              TEXT,
-    version            TEXT,
     type               TEXT    NOT NULL DEFAULT 'mv'
                        CHECK (type IN ('mv','performance','dance_practice',
                                        'live_stage','fancam','relay_dance',
@@ -138,6 +137,9 @@ DEFAULT_PROFILE = {
 #   videos.label, channels.default_label
 #     A hand-typed copy of the channel name; <studio> now comes from
 #     channels.name.
+#   videos.version
+#     A free-text filename suffix that Jellyfin never saw. The type suffix is
+#     now part of the NFO title; anything rarer goes into the title by hand.
 #   channels.default_type, channels.default_profile_id, channels.auto_confirm
 #     Per-channel defaults. Most videos use the default profile anyway and
 #     fixing a mis-detected type is one click, so they were not worth it.

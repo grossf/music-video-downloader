@@ -189,7 +189,6 @@ def update_metadata(
     title: str | None = None,
     video_type: str | None = None,
     year: int | None = None,
-    version: str | None = None,
     profile_id: int | None = None,
     refresh_jellyfin: bool = True,
 ) -> dict:
@@ -210,7 +209,6 @@ def update_metadata(
 
     artist = _blank_to_none(artist)
     title = _blank_to_none(title)
-    version = _blank_to_none(version)
     video_type = video_type or row["type"]
 
     old_media = Path(row["file_path"]) if row["file_path"] else None
@@ -223,7 +221,6 @@ def update_metadata(
         artist=artist,
         title=title,
         video_type=video_type,
-        version=version,
         ext=ext,
     )
 
@@ -264,7 +261,6 @@ def update_metadata(
         "artist": artist,
         "title": title,
         "type": video_type,
-        "version": version,
         "year": year if year is not None else row["year"],
         "file_path": str(placed.media),
         "nfo_path": str(placed.nfo),

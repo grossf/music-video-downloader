@@ -12,7 +12,6 @@ def render_row(**overrides) -> str:
         "video_id": "aaaaaaaaaaa",
         "artist": "SOMEGROUP",
         "title": "Song",
-        "version": None,
         "type": "mv",
         "label": "SOME LABEL",
         "status": "done",
@@ -140,8 +139,7 @@ def render_source_dates(**overrides) -> str:
 
     row = {
         "video_id": "aaaaaaaaaaa", "title": "Song", "artist": "A", "type": "mv",
-        "status": "done", "needs_review": 0, "error": None, "version": None,
-        "source": "addon", "retry_count": 0, "created_at": "", "updated_at": "",
+        "status": "done", "needs_review": 0, "error": None, "source": "addon", "retry_count": 0, "created_at": "", "updated_at": "",
         "channel_id": "UCx", "channel_name": "1theK", "profile_id": None,
         "profile_name": None, "year": 2018, "upload_date": None, "release_date": None,
     }
@@ -181,8 +179,7 @@ def test_detail_has_no_channel_defaults_panel():
 def render_detail(**overrides) -> str:
     row = {
         "video_id": "aaaaaaaaaaa", "title": "Song", "artist": "A", "type": "mv",
-        "status": "done", "needs_review": 0, "error": None, "version": None,
-        "source": "addon", "retry_count": 0,
+        "status": "done", "needs_review": 0, "error": None, "source": "addon", "retry_count": 0,
         "created_at": "2026-09-16 08:38:02", "updated_at": "2026-09-16 09:02:13",
         "channel_id": "UCx", "channel_name": "1theK", "profile_id": None,
         "profile_name": None, "year": 2018, "upload_date": None, "release_date": None,
@@ -222,3 +219,7 @@ def test_detail_has_no_explanatory_hints():
     html = render_detail()
     assert "performs no external" not in html
     assert "Saving renames the file" not in html
+
+
+def test_edit_form_has_no_version_field():
+    assert 'name="version"' not in render_detail()

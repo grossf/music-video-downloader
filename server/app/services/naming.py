@@ -18,10 +18,10 @@ from app.config import settings
 
 log = logging.getLogger(__name__)
 
-# Version suffix shown in the filename, derived from `type` when the video has
-# no explicit `version`. An MV gets no suffix; everything else does, so an MV
-# and its performance cut never collide on anything but the video id.
-VERSION_LABELS = {
+# Suffix appended to the title — in the filename and the NFO <title> alike —
+# so an MV and its performance cut are told apart in Jellyfin's list, where
+# both would otherwise just read "Song". An MV gets no suffix.
+TYPE_SUFFIXES = {
     "mv": None,
     "performance": "Performance",
     "dance_practice": "Dance Practice",
@@ -84,11 +84,20 @@ def sanitize_component(value: str | None, fallback: str = "Unknown") -> str:
     return text
 
 
-def version_for(video_type: str, explicit: str | None = None) -> str | None:
-    """Explicit version wins; otherwise derive one from the type."""
-    if explicit:
-        return explicit
-    return VERSION_LABELS.get(video_type)
+def display_title(title: str | None, video_type: str = "mv") -> str | None:
+    """The title with its type suffix, e.g. "Song (Performance)".
+
+    A title that already ends with the suffix is left alone, so hand-typing
+    "Song (Performance)" does not become "Song (Performance) (Performance)".
+    Anything else in brackets, like "Song (Band Ver.)", is the user's own and
+    still gets the suffix.
+    """
+    suffix = TYPE_SUFFIXES.get(video_type)
+    if not title or not suffix:
+        return title
+    if title.rstrip().lower().endswith(f"({suffix.lower()})"):
+        return title
+    return f"{title} ({suffix})"
 
 
 @dataclass(frozen=True)
@@ -109,25 +118,21 @@ def build_paths(
     artist: str | None,
     title: str | None,
     video_type: str = "mv",
-    version: str | None = None,
     ext: str = "mkv",
     media_root: Path | None = None,
 ) -> LibraryPaths:
-    """{media_root}/{Artist}/{Artist} - {Title} (Version) [videoId].{ext}
+    """{media_root}/{Artist}/{Artist} - {Title} (Type) [videoId].{ext}
 
     With no artist the video lands in _Unsorted/ under its bare title, which
     makes un-reviewed items obvious in Jellyfin as well as in the web UI.
     """
     root = media_root or settings.media_root
     clean_artist = sanitize_component(artist, fallback="") if artist else ""
-    clean_title = sanitize_component(title, fallback=video_id)
+    clean_title = sanitize_component(display_title(title, video_type), fallback=video_id)
 
     directory = root / (clean_artist or UNSORTED_DIR)
 
     name = f"{clean_artist} - {clean_title}" if clean_artist else clean_title
-    suffix = version_for(video_type, version)
-    if suffix:
-        name = f"{name} ({sanitize_component(suffix)})"
 
     # The [videoId] tail is the identity key and must never be truncated, so
     # the descriptive part absorbs the whole budget cut.

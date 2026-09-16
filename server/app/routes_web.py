@@ -224,7 +224,6 @@ async def save_video(
     title: str = Form(""),
     video_type: str = Form("mv"),
     year: str = Form(""),
-    version: str = Form(""),
     profile_id: str = Form(""),
 ):
     try:
@@ -234,7 +233,6 @@ async def save_video(
             title=title,
             video_type=video_type,
             year=int(year) if year.strip().isdigit() else None,
-            version=version,
             profile_id=int(profile_id) if profile_id.strip().isdigit() else None,
         )
     except (videos.NotFound, videos.NotEditable) as exc:

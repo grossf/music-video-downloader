@@ -179,7 +179,6 @@ def finalise(video: dict, result: dict) -> dict:
         artist=video.get("artist"),
         title=video.get("title"),
         video_type=video.get("type") or "mv",
-        version=video.get("version"),
         ext=result["media"].suffix.lstrip("."),
     )
 

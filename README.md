@@ -108,6 +108,11 @@ library does not appear to surface `<studio>` in its UI, so it is kept in the
 file only because it costs nothing. The type `<tag>` may not surface either —
 that is unverified.
 
+Every type except MV is appended to the title, in both the filename and the
+NFO `<title>` — "Song (Performance)" — so an MV and its performance cut can be
+told apart in Jellyfin's list. The stored title stays clean. For anything
+rarer, like a band version, edit the title itself: "Song (Band Ver.)".
+
 ## Testing
 
 ```bash

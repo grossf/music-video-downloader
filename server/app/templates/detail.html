@@ -17,7 +17,6 @@
     <h1 style="margin:0 0 .2rem;font-size:1.3rem">{{ v.title or v.video_id }}</h1>
     <div class="sub" style="font-size:.95rem">
       {% if v.artist %}{{ v.artist }}{% else %}<em>no artist</em>{% endif %}
-      {% if v.version %} &middot; {{ v.version }}{% endif %}
     </div>
     <div style="margin-top:.7rem;display:flex;gap:.4rem;flex-wrap:wrap">
       <span class="badge s-{{ v.status }}">{{ v.status }}</span>
