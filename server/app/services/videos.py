@@ -70,12 +70,13 @@ def list_videos(
         statuses = (status,) if isinstance(status, str) else tuple(status)
         clauses.append(f"v.status IN ({', '.join('?' * len(statuses))})")
         params.extend(statuses)
+    else:
+        # Tombstones only show up when asked for by status; the library at
+        # large is what is actually on disk.
+        clauses.append("v.status <> 'deleted'")
     if needs_review is not None:
         clauses.append("v.needs_review = ?")
         params.append(1 if needs_review else 0)
-        if needs_review:
-            # A deleted video has nothing left to review.
-            clauses.append("v.status <> 'deleted'")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     params.append(limit)
     with get_conn() as conn:

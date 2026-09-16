@@ -119,7 +119,9 @@ def to_view(row: dict) -> dict:
 
 def _counts() -> dict[str, int]:
     with get_conn() as conn:
-        total = conn.execute("SELECT COUNT(*) c FROM videos").fetchone()["c"]
+        total = conn.execute(
+            "SELECT COUNT(*) c FROM videos WHERE status <> 'deleted'"
+        ).fetchone()["c"]
         by_status = {
             r["status"]: r["c"]
             for r in conn.execute(

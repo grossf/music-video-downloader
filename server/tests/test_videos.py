@@ -137,3 +137,23 @@ def test_review_filter_skips_deleted_videos(db):
     with get_conn() as conn:
         conn.execute("UPDATE videos SET status='deleted' WHERE video_id='bbbbbbbbbbb'")
     assert [v["video_id"] for v in videos.list_videos(needs_review=True)] == ["aaaaaaaaaaa"]
+
+
+def test_deleted_videos_only_show_under_the_deleted_filter(db):
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A")
+    videos.enqueue(video_id="bbbbbbbbbbb", title="B")
+    with get_conn() as conn:
+        conn.execute("UPDATE videos SET status='deleted' WHERE video_id='bbbbbbbbbbb'")
+    assert [v["video_id"] for v in videos.list_videos()] == ["aaaaaaaaaaa"]
+    assert [v["video_id"] for v in videos.list_videos(status="deleted")] == ["bbbbbbbbbbb"]
+
+
+def test_all_count_excludes_deleted_videos(db):
+    from app.routes_web import _counts
+
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A")
+    videos.enqueue(video_id="bbbbbbbbbbb", title="B")
+    with get_conn() as conn:
+        conn.execute("UPDATE videos SET status='deleted' WHERE video_id='bbbbbbbbbbb'")
+    counts = _counts()
+    assert counts["all"] == 1 and counts["deleted"] == 1
