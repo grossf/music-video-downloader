@@ -84,15 +84,15 @@ def test_build_paths_does_not_double_a_hand_typed_suffix():
 
 def test_build_paths_standard():
     p = build_paths(
-        video_id="dQw4w9WgXcQ",
+        video_id="Xy1_placeho",
         artist="TWICE",
         title="Song Title",
         media_root=ROOT,
     )
     assert p.directory == ROOT / "TWICE"
-    assert p.media.name == "TWICE - Song Title [dQw4w9WgXcQ].mkv"
-    assert p.nfo.name == "TWICE - Song Title [dQw4w9WgXcQ].nfo"
-    assert p.thumb.name == "TWICE - Song Title [dQw4w9WgXcQ]-thumb.jpg"
+    assert p.media.name == "TWICE - Song Title [Xy1_placeho].mkv"
+    assert p.nfo.name == "TWICE - Song Title [Xy1_placeho].nfo"
+    assert p.thumb.name == "TWICE - Song Title [Xy1_placeho]-thumb.jpg"
 
 
 def test_build_paths_performance_gets_type_suffix():
@@ -123,7 +123,7 @@ def test_build_paths_untitled_falls_back_to_video_id():
 
 def test_build_paths_long_title_stays_under_filesystem_limit():
     p = build_paths(
-        video_id="dQw4w9WgXcQ",
+        video_id="Xy1_placeho",
         artist="가" * 100,
         title="나" * 100,
         media_root=ROOT,
@@ -133,18 +133,18 @@ def test_build_paths_long_title_stays_under_filesystem_limit():
         assert len(name.encode("utf-8")) < 255, name
     assert len(p.directory.name.encode("utf-8")) < 255
     # Truncation must not eat the identity key.
-    assert "[dQw4w9WgXcQ]" in p.media.name
+    assert "[Xy1_placeho]" in p.media.name
 
 
 def test_build_paths_truncation_keeps_video_id_for_absurd_titles():
     p = build_paths(
-        video_id="dQw4w9WgXcQ",
+        video_id="Xy1_placeho",
         artist="A" * 400,
         title="B" * 400,
         video_type="dance_practice",
         media_root=ROOT,
     )
-    assert p.media.name.endswith("[dQw4w9WgXcQ].mkv")
+    assert p.media.name.endswith("[Xy1_placeho].mkv")
     assert len(p.thumb.name.encode("utf-8")) < 255
 
 

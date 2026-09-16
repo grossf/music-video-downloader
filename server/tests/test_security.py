@@ -61,3 +61,8 @@ def test_htmx_is_served_locally():
     response = client.get("/static/htmx.min.js")
     assert response.status_code == 200
     assert "htmx" in response.text[:200]
+
+
+def test_health_reports_the_version():
+    client = TestClient(app)
+    assert client.get("/api/health").json()["version"] == "dev"

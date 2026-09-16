@@ -83,6 +83,47 @@ it has.
 from another site; otherwise any page open in your browser could delete videos
 in the background. `/api` is exempt, being protected by the token.
 
+## CI and releases
+
+Every push and pull request runs the server tests, lints the addon and builds
+the Docker image (`.github/workflows/ci.yml`).
+
+A release is cut by tagging a commit on `main`:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+`release.yml` then checks the tag is on `main`, runs the same checks, and:
+
+- pushes `ghcr.io/<owner>/music-video-downloader` tagged `0.2.0`, `0.2` and
+  `latest` (linux/amd64)
+- signs the addon on addons.mozilla.org as **unlisted** and attaches the
+  `.xpi` to a GitHub release
+
+The tag is the only version number: the image reports it at `/api/health` and
+in the web UI footer, and the addon's manifest version is set from it at
+signing time.
+
+One-time setup:
+
+1. Create API credentials at <https://addons.mozilla.org/developers/addon/api/key/>
+   and add them as repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`.
+2. After the first release, the image package on GitHub is private by default
+   if the repo is private. Either make the package public, or `docker login
+   ghcr.io` on the server with a token that has `read:packages`.
+
+On the server, use the published image instead of building:
+
+```yaml
+services:
+  mvd:
+    image: ghcr.io/<owner>/music-video-downloader:0.2.0
+```
+
+Pin a version rather than `latest`, and update by changing it.
+
 ## Installing the addon
 
 During development, load it temporarily — no signing needed:

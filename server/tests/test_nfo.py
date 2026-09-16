@@ -31,9 +31,9 @@ def test_studio_is_written_once_not_duplicated_as_a_tag():
 
 
 def test_video_id_is_recorded_as_uniqueid():
-    root = parse(build_nfo(video_id="dQw4w9WgXcQ", title="S"))
+    root = parse(build_nfo(video_id="Xy1_placeho", title="S"))
     uid = root.find("uniqueid")
-    assert uid.text == "dQw4w9WgXcQ"
+    assert uid.text == "Xy1_placeho"
     assert uid.get("type") == "youtube"
 
 

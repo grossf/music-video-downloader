@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    # Tags are handled by release.yml, which calls this workflow itself.
+    tags-ignore: ["**"]
+  pull_request:
+  # Lets release.yml run the same checks before publishing anything.
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Server tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: server/pyproject.toml
+      - name: Install
+        run: pip install -e "server[dev]"
+      - name: Test
+        working-directory: server
+        run: python -m pytest -q
+
+  addon:
+    name: Addon lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: web-ext lint
+        run: npx --yes web-ext@8 lint --source-dir addon
+
+  image:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      # The tests never exercise the Dockerfile or the entrypoint, so a broken
+      # image would otherwise only surface when a release is cut.
+      - name: Build (not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -9,6 +9,10 @@ RUN apt-get update \
 
 WORKDIR /app
 
+# Set by the release workflow from the git tag, e.g. v0.2.0.
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir .
 

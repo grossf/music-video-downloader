@@ -22,6 +22,9 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
+    # Baked into release images from the git tag; "dev" everywhere else.
+    app_version: str = "dev"
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "app.db"

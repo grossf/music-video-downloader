@@ -92,6 +92,7 @@ app.include_router(web_router)
 async def health() -> dict:
     return {
         "status": "ok",
+        "version": settings.app_version,
         "media_root": str(settings.media_root),
         "jellyfin_configured": jellyfin.is_configured(),
     }

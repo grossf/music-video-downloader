@@ -24,6 +24,9 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
+# Shown in the footer, so it is obvious which release the server is running.
+templates.env.globals["app_version"] = settings.app_version
+
 TYPE_OPTIONS = list(TYPE_TAGS.items())
 
 # Ordered by how widely each codec is hardware-decoded, not by efficiency:

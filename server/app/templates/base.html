@@ -150,6 +150,7 @@
     .detail-grid dd { margin: 0; overflow-wrap: anywhere; }
     code { font-size: .82rem; color: var(--text); }
     code.path { color: var(--muted); font-size: .82rem; }
+    .footer { text-align: center; color: var(--muted); font-size: 0.75rem; padding: 1.5rem 0 2rem; }
     .empty { color: var(--muted); padding: 3rem 1rem; text-align: center; }
     .error { color: var(--err); font-size: 0.85rem; }
     .htmx-request { opacity: 0.5; }
@@ -167,5 +168,6 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+  <footer class="footer">{{ app_version }}</footer>
 </body>
 </html>
