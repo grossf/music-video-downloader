@@ -30,7 +30,8 @@
 
   <td>
     {% if v.artist %}
-      {{ v.artist }}
+      <a href="/?artist={{ v.artist | urlencode }}" class="artist-link"
+         title="All videos by {{ v.artist }}">{{ v.artist }}</a>
     {% else %}
       {# The absent artist IS the review signal — the extraction rules leave it
          empty rather than guessing the channel, which is the label. #}

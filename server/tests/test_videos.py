@@ -157,3 +157,53 @@ def test_all_count_excludes_deleted_videos(db):
         conn.execute("UPDATE videos SET status='deleted' WHERE video_id='bbbbbbbbbbb'")
     counts = _counts()
     assert counts["all"] == 1 and counts["deleted"] == 1
+
+
+# --- search -----------------------------------------------------------------
+
+
+def _seed_search(db_unused=None):
+    videos.enqueue(video_id="aaaaaaaaaaa", artist="IVE", title="LOVE DIVE")
+    videos.enqueue(video_id="bbbbbbbbbbb", artist="ILLIT", title="Magnetic")
+    videos.enqueue(video_id="ccccccccccc", artist="LIVE BAND", title="Encore")
+
+
+def _ids(rows):
+    return {r["video_id"] for r in rows}
+
+
+def test_search_matches_title_or_artist_case_insensitively(db):
+    _seed_search()
+    assert _ids(videos.list_videos(q="magnetic")) == {"bbbbbbbbbbb"}
+    assert _ids(videos.list_videos(q="illit")) == {"bbbbbbbbbbb"}
+    # Substring, across both columns: IVE, LOVE DIVE and LIVE BAND.
+    assert _ids(videos.list_videos(q="ive")) == {"aaaaaaaaaaa", "ccccccccccc"}
+
+
+def test_artist_filter_is_exact_not_a_substring(db):
+    """Clicking IVE must not also list LIVE BAND."""
+    _seed_search()
+    assert _ids(videos.list_videos(artist="ive")) == {"aaaaaaaaaaa"}
+
+
+def test_search_wildcards_are_literal(db):
+    _seed_search()
+    assert videos.list_videos(q="%") == []
+    assert videos.list_videos(q="_") == []
+
+
+def test_search_combines_with_the_status_filter(db):
+    _seed_search()
+    with get_conn() as conn:
+        conn.execute("UPDATE videos SET status='failed' WHERE video_id='bbbbbbbbbbb'")
+    assert _ids(videos.list_videos(status="failed", q="ill")) == {"bbbbbbbbbbb"}
+    assert videos.list_videos(status="failed", q="ive") == []
+
+
+def test_filter_counts_follow_the_search(db):
+    from app.routes_web import _counts
+
+    _seed_search()
+    assert _counts(q="ive")["all"] == 2
+    assert _counts(artist="ILLIT")["all"] == 1
+    assert _counts()["all"] == 3

@@ -1,14 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
+{# The search box sits outside #library so typing never loses focus: each
+   keystroke swaps only the tabs and the table below it. #}
+<form class="search" method="get" action="/" role="search"
+      hx-get="/" hx-trigger="input changed delay:250ms, search"
+      hx-target="#library" hx-select="#library" hx-swap="outerHTML"
+      hx-push-url="true">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search title or artist"
+         aria-label="Search title or artist" autocomplete="off">
+  {% if active_filter != "all" %}<input type="hidden" name="filter" value="{{ active_filter }}">{% endif %}
+  {% if artist %}<input type="hidden" name="artist" value="{{ artist }}">{% endif %}
+</form>
+
+<div id="library">
 <div class="filters">
-  {% for key, text, count in filters %}
-    <a href="/?filter={{ key }}" class="{{ 'active' if key == active_filter else '' }}">
+  {% for key, text, count, href in filters %}
+    <a href="{{ href }}" class="{{ 'active' if key == active_filter else '' }}">
       {{ text }} ({{ count }})
     </a>
   {% endfor %}
+  {% if artist %}
+    <a class="chip" href="{{ clear_artist_href }}" title="Show all artists">
+      Artist: {{ artist }} &times;
+    </a>
+  {% endif %}
 </div>
-
 
 {% if videos %}
 <table>
@@ -29,11 +46,14 @@
 </table>
 {% else %}
 <div class="empty">
-  {% if active_filter == "all" %}
+  {% if q or artist %}
+    No videos match your search. <a href="{{ clear_search_href }}">Clear search</a>
+  {% elif active_filter == "all" %}
     Nothing here yet. <a href="/add">Add a video</a> or queue one from the Firefox addon.
   {% else %}
     No videos match &ldquo;{{ active_filter_label }}&rdquo;. <a href="/">Show all</a>
   {% endif %}
 </div>
 {% endif %}
+</div>
 {% endblock %}

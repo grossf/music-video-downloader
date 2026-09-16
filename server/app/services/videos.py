@@ -59,13 +59,35 @@ def get_many(video_ids: list[str]) -> dict[str, dict]:
     return {row["video_id"]: dict(row) for row in rows}
 
 
+def search_clauses(q: str | None = None, artist: str | None = None) -> tuple[list, list]:
+    """WHERE fragments for the library search, shared by the list and the
+    filter counts so a tab's number always matches what clicking it shows.
+
+    `q` matches anywhere in the title or artist; `artist` is the exact artist
+    a click on an artist name selects, so "IVE" does not also pull in "LIVE".
+    """
+    clauses, params = [], []
+    q = (q or "").strip()
+    if q:
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        clauses.append("(v.title LIKE ? ESCAPE '\\' OR v.artist LIKE ? ESCAPE '\\')")
+        params.extend([f"%{escaped}%"] * 2)
+    artist = (artist or "").strip()
+    if artist:
+        clauses.append("v.artist = ? COLLATE NOCASE")
+        params.append(artist)
+    return clauses, params
+
+
 def list_videos(
     *,
     status: str | tuple[str, ...] | None = None,
     needs_review: bool | None = None,
+    q: str | None = None,
+    artist: str | None = None,
     limit: int = 500,
 ) -> list[dict]:
-    clauses, params = [], []
+    clauses, params = search_clauses(q, artist)
     if status:
         statuses = (status,) if isinstance(status, str) else tuple(status)
         clauses.append(f"v.status IN ({', '.join('?' * len(statuses))})")

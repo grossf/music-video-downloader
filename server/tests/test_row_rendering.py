@@ -111,8 +111,11 @@ def test_every_icon_button_has_an_accessible_name():
     """The svg is aria-hidden, so without an aria-label an icon-only button is
     nameless to a screen reader and unlabelled when tooltips do not fire."""
     html = render_row(status="done")
-    assert html.count("<button") == html.count("aria-label=")
-    assert html.count("<button") == html.count("title=")
+    import re
+
+    buttons = re.findall(r"<button[^>]*>", html)
+    assert buttons
+    assert all("aria-label=" in b and "title=" in b for b in buttons)
 
 
 def test_buttons_use_icons_not_text_labels():
@@ -242,3 +245,24 @@ def test_empty_filter_says_nothing_matches_rather_than_nothing_exists():
 
 def test_empty_library_still_invites_adding_a_video():
     assert "Nothing here yet" in render_empty_list("all", "All")
+
+
+def test_artist_name_links_to_its_filter():
+    html = render_row(artist="Red Velvet")
+    assert 'href="/?artist=Red%20Velvet"' in html
+
+
+def test_filter_tabs_keep_the_search():
+    from app.routes_web import _library_href
+
+    assert _library_href("failed", "ive", "IVE") == "/?filter=failed&q=ive&artist=IVE"
+    assert _library_href("all") == "/"
+
+
+def test_empty_search_offers_to_clear_it():
+    html = templates.get_template("list.html").render(
+        videos=[], filters=[], active_filter="all", active_filter_label="All",
+        q="zzz", artist="", clear_search_href="/", clear_artist_href="/",
+        type_options=TYPE_OPTIONS, request=None,
+    )
+    assert "No videos match your search" in html and "Clear search" in html

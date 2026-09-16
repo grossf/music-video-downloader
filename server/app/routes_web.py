@@ -7,7 +7,7 @@ cannot drift apart.
 
 import logging
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -117,20 +117,26 @@ def to_view(row: dict) -> dict:
     }
 
 
-def _counts() -> dict[str, int]:
+def _counts(q: str | None = None, artist: str | None = None) -> dict[str, int]:
+    clauses, params = videos.search_clauses(q, artist)
+    search = "".join(" AND " + c for c in clauses)
     with get_conn() as conn:
         total = conn.execute(
-            "SELECT COUNT(*) c FROM videos WHERE status <> 'deleted'"
+            f"SELECT COUNT(*) c FROM videos v WHERE v.status <> 'deleted'{search}",
+            params,
         ).fetchone()["c"]
         by_status = {
             r["status"]: r["c"]
             for r in conn.execute(
-                "SELECT status, COUNT(*) c FROM videos GROUP BY status"
+                f"SELECT v.status, COUNT(*) c FROM videos v WHERE 1=1{search}"
+                " GROUP BY v.status",
+                params,
             )
         }
         review = conn.execute(
-            "SELECT COUNT(*) c FROM videos WHERE needs_review = 1"
-            " AND status <> 'deleted'"
+            "SELECT COUNT(*) c FROM videos v WHERE v.needs_review = 1"
+            f" AND v.status <> 'deleted'{search}",
+            params,
         ).fetchone()["c"]
     return {
         "all": total,
@@ -148,18 +154,33 @@ def _row_response(request: Request, video_id: str) -> HTMLResponse:
     )
 
 
+def _library_href(filter: str = "all", q: str = "", artist: str = "") -> str:
+    params = {"filter": filter if filter != "all" else "", "q": q, "artist": artist}
+    params = {k: v for k, v in params.items() if v}
+    return "/?" + urlencode(params) if params else "/"
+
+
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request, filter: str = "all"):
+async def index(request: Request, filter: str = "all", q: str = "", artist: str = ""):
+    q, artist = q.strip(), artist.strip()
     selected = next((f for f in FILTERS if f[0] == filter), FILTERS[0])
-    rows = videos.list_videos(**selected[2])
-    counts = _counts()
+    rows = videos.list_videos(**selected[2], q=q, artist=artist)
+    counts = _counts(q, artist)
     return templates.TemplateResponse(
         request=request,
         name="list.html",
         context={
             "videos": [to_view(r) for r in rows],
-            "filters": [(key, text, counts[key]) for key, text, _ in FILTERS],
+            "filters": [
+                (key, text, counts[key], _library_href(key, q, artist))
+                for key, text, _ in FILTERS
+            ],
             "active_filter": selected[0],
+            "q": q,
+            "artist": artist,
+            # Removing the artist chip keeps the tab and the typed search.
+            "clear_artist_href": _library_href(selected[0], q),
+            "clear_search_href": _library_href(selected[0]),
             "active_filter_label": selected[1],
             "type_options": TYPE_OPTIONS,
         },
