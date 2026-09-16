@@ -15,3 +15,8 @@ updates:
     directory: /server
     schedule:
       interval: weekly
+    # Stay on the Python version CI tests against; moving to a newer one is a
+    # deliberate change to the workflow and the image together.
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
