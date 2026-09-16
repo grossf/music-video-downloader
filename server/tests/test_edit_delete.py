@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -51,7 +52,7 @@ def test_edit_renames_files_and_moves_artist_folder(db):
         "aaaaaaaaaaa", artist="NEWNAME", title="Better Title"
     )
 
-    new_media = settings.media_root / "NEWNAME" / "NEWNAME - Better Title [aaaaaaaaaaa].mkv"
+    new_media = settings.media_root / "NEWNAME" / "Better Title [aaaaaaaaaaa].mkv"
     assert new_media.exists()
     assert new_media.read_bytes() == b"fake video data"
     assert updated["file_path"] == str(new_media)
@@ -110,10 +111,10 @@ def test_edit_changing_type_adds_the_type_suffix(db):
     updated = videos.update_metadata(
         "aaaaaaaaaaa", artist="A", title="Song", video_type="performance"
     )
-    assert updated["file_path"].endswith("A - Song (Performance) [aaaaaaaaaaa].mkv")
+    assert updated["file_path"].endswith("A/Song (Performance) [aaaaaaaaaaa].mkv".replace("/", os.sep))
     # The stored title stays clean; only the file and NFO carry the suffix.
     assert updated["title"] == "Song"
-    assert read_nfo(Path(updated["nfo_path"]))["title"] == "Song (Performance)"
+    assert read_nfo(Path(updated["nfo_path"]))["title"] == "A - Song (Performance)"
 
 
 
@@ -233,3 +234,49 @@ def test_edit_without_any_date_does_not_crash(db):
     make_done_video(artist="OLDNAME", title="Song")
     updated = videos.update_metadata("aaaaaaaaaaa", artist="NEWNAME", title="Song")
     assert read_nfo(Path(updated["nfo_path"]))["premiered"] is None
+
+
+# --- relayout at startup -----------------------------------------------------
+
+
+def _old_layout_video(video_id="aaaaaaaaaaa", artist="ILLIT", title="Song", video_type="mv"):
+    """A finished video as the previous naming rules left it on disk."""
+    videos.enqueue(video_id=video_id, artist=artist, title=title,
+                   video_type=video_type, duration=100)
+    directory = settings.media_root / artist
+    directory.mkdir(parents=True, exist_ok=True)
+    stem = f"{artist} - {title} [{video_id}]"
+    media, nfo, thumb = (directory / f"{stem}.mkv", directory / f"{stem}.nfo",
+                         directory / f"{stem}-thumb.jpg")
+    media.write_bytes(b"video")
+    nfo.write_text("<musicvideo><title>Song</title></musicvideo>", encoding="utf-8")
+    thumb.write_bytes(b"jpg")
+    videos.mark_done(video_id, file_path=str(media), nfo_path=str(nfo), thumb_path=str(thumb))
+    return media
+
+
+def test_relayout_moves_old_files_and_rewrites_the_nfo_title(db):
+    old = _old_layout_video()
+    assert videos.relayout_library() == 1
+
+    row = videos.get("aaaaaaaaaaa")
+    new = Path(row["file_path"])
+    assert new.name == "Song [aaaaaaaaaaa].mkv" and new.read_bytes() == b"video"
+    assert not old.exists()
+    assert read_nfo(Path(row["nfo_path"]))["title"] == "ILLIT - Song"
+    assert Path(row["thumb_path"]).exists()
+
+
+def test_relayout_is_idempotent(db):
+    _old_layout_video()
+    videos.relayout_library()
+    assert videos.relayout_library() == 0
+
+
+def test_relayout_leaves_rows_whose_files_are_elsewhere_alone(db):
+    """A database copied from the container has paths that do not exist on a
+    dev machine; rewriting them would break the row where they do exist."""
+    media = _old_layout_video()
+    media.unlink()
+    assert videos.relayout_library() == 0
+    assert videos.get("aaaaaaaaaaa")["file_path"] == str(media)

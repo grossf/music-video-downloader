@@ -18,6 +18,18 @@ log = logging.getLogger(__name__)
 XML_DECL = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>\n'
 
 
+def nfo_title(
+    title: str | None, artist: str | None = None, video_type: str = "mv"
+) -> str | None:
+    """"ILLIT - Song (Performance)". Jellyfin's music video lists show only
+    the title, so without the artist every entry is a bare song name; with it
+    the list also sorts by artist."""
+    shown = display_title(title, video_type)
+    if shown and artist:
+        return f"{artist} - {shown}"
+    return shown
+
+
 def build_nfo(
     *,
     video_id: str,
@@ -38,7 +50,7 @@ def build_nfo(
             return
         ET.SubElement(root, tag).text = str(value)
 
-    add("title", display_title(title, video_type) or video_id)
+    add("title", nfo_title(title, artist, video_type) or video_id)
     add("artist", artist)
     add("year", year)
     # Jellyfin reads <premiered> as the full release date; <year> alone loses

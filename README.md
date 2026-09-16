@@ -17,9 +17,9 @@ Three pieces:
 Firefox addon                  Server (Docker)           MEDIA_ROOT
 ─────────────                  ───────────────           ──────────
 content.js  detects video id   /api/probe                Artist/
-background.js  badge + fetch   /api/videos                 Artist - Title [id].mkv
-popup.js  prefilled form       worker → yt-dlp             Artist - Title [id].nfo
-                               SQLite (queue + index)      Artist - Title [id]-thumb.jpg
+background.js  badge + fetch   /api/videos                 Title [id].mkv       
+popup.js  prefilled form       worker → yt-dlp             Title [id].nfo       
+                               SQLite (queue + index)      Title [id]-thumb.jpg       
 web UI  review / edit / delete → Jellyfin refresh
 ```
 
@@ -169,6 +169,14 @@ Every type except MV is appended to the title, in both the filename and the
 NFO `<title>` — "Song (Performance)" — so an MV and its performance cut can be
 told apart in Jellyfin's list. The stored title stays clean. For anything
 rarer, like a band version, edit the title itself: "Song (Band Ver.)".
+
+Files are laid out as `Artist/Title (Type) [id].mkv`. The file name does not
+repeat the artist on purpose: when every file in a folder starts with the
+folder name followed by " - ", Jellyfin merges them into one item with
+alternate versions, so an MV and its performance video would become a single
+entry. The artist goes into the NFO title instead ("ILLIT - Song
+(Performance)"), which is what Jellyfin's lists show. On startup the app moves
+existing videos to the current layout and rewrites stale NFO titles.
 
 ## Testing
 

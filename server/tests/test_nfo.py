@@ -10,7 +10,7 @@ def parse(xml: str) -> ET.Element:
 def test_build_nfo_is_wellformed_musicvideo():
     root = parse(build_nfo(video_id="abc123", title="Song", artist="TWICE"))
     assert root.tag == "musicvideo"
-    assert root.findtext("title") == "Song"
+    assert root.findtext("title") == "TWICE - Song"
     assert root.findtext("artist") == "TWICE"
 
 
@@ -55,7 +55,7 @@ def test_runtime_converted_to_minutes():
 
 def test_special_characters_are_escaped():
     root = parse(build_nfo(video_id="a", title='A & B <tag> "q"', artist="AC/DC"))
-    assert root.findtext("title") == 'A & B <tag> "q"'
+    assert root.findtext("title") == 'AC/DC - A & B <tag> "q"'
     assert root.findtext("artist") == "AC/DC"
 
 
@@ -71,7 +71,7 @@ def test_roundtrip_write_and_read(tmp_path):
         video_type="performance",
     )
     data = read_nfo(path)
-    assert data["title"] == "Song (Performance)"
+    assert data["title"] == "TWICE - Song (Performance)"
     assert data["artist"] == "TWICE"
     assert data["year"] == 2024
     assert data["studio"] == "JYP"
@@ -104,3 +104,8 @@ def test_title_carries_the_type_so_versions_differ_in_jellyfin():
     perf = parse(build_nfo(video_id="b", title="Song", video_type="performance"))
     assert mv.findtext("title") == "Song"
     assert perf.findtext("title") == "Song (Performance)"
+
+
+def test_title_without_an_artist_is_just_the_song():
+    root = parse(build_nfo(video_id="a", title="Song", artist=None, video_type="performance"))
+    assert root.findtext("title") == "Song (Performance)"

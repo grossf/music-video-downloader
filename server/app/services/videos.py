@@ -12,7 +12,7 @@ from typing import Any
 from app.db import default_profile_id, get_conn
 from app.services import jellyfin
 from app.services.naming import build_paths, place_file, prune_empty_dir
-from app.services.nfo import write_nfo
+from app.services.nfo import nfo_title, read_nfo, write_nfo
 
 log = logging.getLogger(__name__)
 
@@ -385,3 +385,61 @@ def mark_done(video_id: str, **fields) -> None:
             f" updated_at = {NOW} WHERE video_id = :video_id",
             params,
         )
+
+
+def relayout_library() -> int:
+    """Move finished videos to where the current naming rules put them and
+    rewrite NFOs whose title is out of date. Returns how many were changed.
+
+    Runs at startup, so a change to the file layout or the NFO title format
+    reaches an existing library without anyone editing each video by hand.
+    Idempotent: a library that already matches is left untouched.
+    """
+    with get_conn() as conn:
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM videos WHERE status = 'done' AND file_path IS NOT NULL"
+            )
+        ]
+
+    changed = 0
+    for row in rows:
+        media = Path(row["file_path"])
+        # A path that does not exist here belongs to another environment (a
+        # database copied from the container onto a dev machine, say). Moving
+        # nothing and rewriting its paths would corrupt the row for the place
+        # it does exist.
+        if not media.exists():
+            continue
+
+        target = build_paths(
+            video_id=row["video_id"],
+            artist=row["artist"],
+            title=row["title"],
+            video_type=row["type"] or "mv",
+            ext=media.suffix.lstrip("."),
+        )
+        wanted_title = nfo_title(row["title"], row["artist"], row["type"] or "mv")
+        nfo = Path(row["nfo_path"]) if row["nfo_path"] else None
+        current_title = read_nfo(nfo).get("title") if nfo and nfo.exists() else None
+
+        if media == target.media and current_title == (wanted_title or row["video_id"]):
+            continue
+
+        try:
+            update_metadata(
+                row["video_id"],
+                artist=row["artist"],
+                title=row["title"],
+                video_type=row["type"],
+                refresh_jellyfin=False,
+            )
+            changed += 1
+        except Exception:  # one bad row must not stop the rest, or startup
+            log.exception("could not bring %s in line with the library layout", row["video_id"])
+
+    if changed:
+        log.info("updated %s video(s) to the current library layout", changed)
+        jellyfin.refresh()
+    return changed

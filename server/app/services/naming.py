@@ -51,7 +51,7 @@ _WIN_RESERVED = {
 # Filesystems cap a single name at 255 bytes. The longest suffix we append is
 # "-thumb.jpg", so the stem must stay well under that.
 MAX_COMPONENT_BYTES = 150   # for a standalone component, i.e. the artist folder
-MAX_STEM_BYTES = 200        # for the assembled "Artist - Title (Version) [id]"
+MAX_STEM_BYTES = 200        # for the assembled "Title (Type) [id]"
 
 
 def _truncate_bytes(value: str, limit: int) -> str:
@@ -121,7 +121,14 @@ def build_paths(
     ext: str = "mkv",
     media_root: Path | None = None,
 ) -> LibraryPaths:
-    """{media_root}/{Artist}/{Artist} - {Title} (Type) [videoId].{ext}
+    """{media_root}/{Artist}/{Title} (Type) [videoId].{ext}
+
+    The file name deliberately does NOT repeat the artist. Jellyfin merges
+    every video in a folder into one item with "alternate versions" when all
+    the file names start with the folder name followed by " - ", and all share
+    a year — so "ILLIT/ILLIT - Song [id].mkv" and "ILLIT/ILLIT - Song
+    (Performance) [id].mkv" became a single entry. See GetVideosGroupedByVersion
+    in jellyfin/Emby.Naming/Video/VideoListResolver.cs.
 
     With no artist the video lands in _Unsorted/ under its bare title, which
     makes un-reviewed items obvious in Jellyfin as well as in the web UI.
@@ -132,7 +139,7 @@ def build_paths(
 
     directory = root / (clean_artist or UNSORTED_DIR)
 
-    name = f"{clean_artist} - {clean_title}" if clean_artist else clean_title
+    name = clean_title
 
     # The [videoId] tail is the identity key and must never be truncated, so
     # the descriptive part absorbs the whole budget cut.

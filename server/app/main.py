@@ -13,7 +13,7 @@ from app.db import init_db
 from app.routes_api import router as api_router
 from app.routes_web import router as web_router
 from app.security import refuses
-from app.services import jellyfin
+from app.services import jellyfin, videos
 from app.worker import requeue_interrupted, worker_loop
 
 log = logging.getLogger(__name__)
@@ -30,6 +30,10 @@ async def lifespan(app: FastAPI):
     log.info("media_root=%s data_dir=%s", settings.media_root, settings.data_dir)
     log.info("default profile id=%s", profile_id)
     log.info("jellyfin configured: %s", jellyfin.is_configured())
+
+    # Before the workers start, so nothing is downloading into a folder that
+    # is being rearranged.
+    await asyncio.to_thread(videos.relayout_library)
 
     # A row still marked 'downloading' means the process died mid-job.
     recovered = requeue_interrupted()

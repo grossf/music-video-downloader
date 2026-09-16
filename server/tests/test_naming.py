@@ -79,7 +79,7 @@ def test_build_paths_does_not_double_a_hand_typed_suffix():
         video_id="bbb", artist="TWICE", title="Song (Performance)",
         video_type="performance", media_root=ROOT,
     )
-    assert p.media.name == "TWICE - Song (Performance) [bbb].mkv"
+    assert p.media.name == "Song (Performance) [bbb].mkv"
 
 
 def test_build_paths_standard():
@@ -90,9 +90,9 @@ def test_build_paths_standard():
         media_root=ROOT,
     )
     assert p.directory == ROOT / "TWICE"
-    assert p.media.name == "TWICE - Song Title [Xy1_placeho].mkv"
-    assert p.nfo.name == "TWICE - Song Title [Xy1_placeho].nfo"
-    assert p.thumb.name == "TWICE - Song Title [Xy1_placeho]-thumb.jpg"
+    assert p.media.name == "Song Title [Xy1_placeho].mkv"
+    assert p.nfo.name == "Song Title [Xy1_placeho].nfo"
+    assert p.thumb.name == "Song Title [Xy1_placeho]-thumb.jpg"
 
 
 def test_build_paths_performance_gets_type_suffix():
@@ -106,7 +106,7 @@ def test_build_paths_performance_gets_type_suffix():
     )
     # Same artist folder, distinct filenames.
     assert mv.directory == perf.directory
-    assert perf.media.name == "TWICE - Song (Performance) [bbb].mkv"
+    assert perf.media.name == "Song (Performance) [bbb].mkv"
     assert mv.media.name != perf.media.name
 
 
@@ -118,7 +118,7 @@ def test_build_paths_without_artist_goes_to_unsorted():
 
 def test_build_paths_untitled_falls_back_to_video_id():
     p = build_paths(video_id="xyz", artist="A", title=None, media_root=ROOT)
-    assert p.media.name == "A - xyz [xyz].mkv"
+    assert p.media.name == "xyz [xyz].mkv"
 
 
 def test_build_paths_long_title_stays_under_filesystem_limit():
@@ -166,3 +166,13 @@ def test_prune_empty_dir_keeps_non_empty(tmp_path):
 def test_prune_empty_dir_never_removes_the_media_root(tmp_path):
     prune_empty_dir(tmp_path, media_root=tmp_path)
     assert tmp_path.exists()
+
+
+def test_file_names_never_start_with_the_artist_folder_name():
+    """Jellyfin merges a folder into one item with alternate versions when
+    every file name starts with the folder name followed by " - "."""
+    for video_type in ("mv", "performance", "dance_practice"):
+        p = build_paths(video_id="abc", artist="ILLIT", title="Song",
+                        video_type=video_type, media_root=ROOT)
+        assert p.directory.name == "ILLIT"
+        assert not p.media.stem.lower().startswith("illit")
