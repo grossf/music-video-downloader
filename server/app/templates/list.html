@@ -29,7 +29,11 @@
 </table>
 {% else %}
 <div class="empty">
-  Nothing here yet. <a href="/add">Add a video</a> or queue one from the Firefox addon.
+  {% if active_filter == "all" %}
+    Nothing here yet. <a href="/add">Add a video</a> or queue one from the Firefox addon.
+  {% else %}
+    No videos match &ldquo;{{ active_filter_label }}&rdquo;. <a href="/">Show all</a>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}

@@ -60,15 +60,22 @@ def get_many(video_ids: list[str]) -> dict[str, dict]:
 
 
 def list_videos(
-    *, status: str | None = None, needs_review: bool | None = None, limit: int = 500
+    *,
+    status: str | tuple[str, ...] | None = None,
+    needs_review: bool | None = None,
+    limit: int = 500,
 ) -> list[dict]:
     clauses, params = [], []
     if status:
-        clauses.append("v.status = ?")
-        params.append(status)
+        statuses = (status,) if isinstance(status, str) else tuple(status)
+        clauses.append(f"v.status IN ({', '.join('?' * len(statuses))})")
+        params.extend(statuses)
     if needs_review is not None:
         clauses.append("v.needs_review = ?")
         params.append(1 if needs_review else 0)
+        if needs_review:
+            # A deleted video has nothing left to review.
+            clauses.append("v.status <> 'deleted'")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     params.append(limit)
     with get_conn() as conn:

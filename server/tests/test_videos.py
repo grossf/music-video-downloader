@@ -118,3 +118,22 @@ def test_worker_claims_rows_with_the_channel_name_attached(db):
     claimed = claim_next()
     assert claimed["status"] == "downloading"
     assert claimed["channel_name"] == "1theK"
+
+
+def test_queued_filter_includes_downloads_in_progress(db):
+    """The Queued count includes downloading videos; the list has to match."""
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A")
+    videos.enqueue(video_id="bbbbbbbbbbb", title="B")
+    with get_conn() as conn:
+        conn.execute("UPDATE videos SET status='downloading' WHERE video_id='bbbbbbbbbbb'")
+    listed = videos.list_videos(status=("queued", "downloading"))
+    assert {v["video_id"] for v in listed} == {"aaaaaaaaaaa", "bbbbbbbbbbb"}
+
+
+def test_review_filter_skips_deleted_videos(db):
+    """Matches the Needs review count, which excludes tombstones."""
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A", needs_review=True)
+    videos.enqueue(video_id="bbbbbbbbbbb", title="B", needs_review=True)
+    with get_conn() as conn:
+        conn.execute("UPDATE videos SET status='deleted' WHERE video_id='bbbbbbbbbbb'")
+    assert [v["video_id"] for v in videos.list_videos(needs_review=True)] == ["aaaaaaaaaaa"]

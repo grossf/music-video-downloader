@@ -225,3 +225,20 @@ def test_detail_has_no_explanatory_hints():
 
 def test_edit_form_has_no_version_field():
     assert 'name="version"' not in render_detail()
+
+
+def render_empty_list(active_filter: str, label: str) -> str:
+    return templates.get_template("list.html").render(
+        videos=[], filters=[], active_filter=active_filter,
+        active_filter_label=label, type_options=TYPE_OPTIONS, request=None,
+    )
+
+
+def test_empty_filter_says_nothing_matches_rather_than_nothing_exists():
+    html = render_empty_list("failed", "Failed")
+    assert "Nothing here yet" not in html
+    assert "No videos match" in html and "Failed" in html
+
+
+def test_empty_library_still_invites_adding_a_video():
+    assert "Nothing here yet" in render_empty_list("all", "All")

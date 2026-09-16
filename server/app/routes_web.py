@@ -37,7 +37,8 @@ CODEC_OPTIONS = [
 FILTERS = [
     ("all", "All", {}),
     ("review", "Needs review", {"needs_review": True}),
-    ("queued", "Queued", {"status": "queued"}),
+    # In flight: a video that has started downloading is still waiting to land.
+    ("queued", "Queued", {"status": ("queued", "downloading")}),
     ("failed", "Failed", {"status": "failed"}),
     ("deleted", "Deleted", {"status": "deleted"}),
 ]
@@ -157,6 +158,7 @@ async def index(request: Request, filter: str = "all"):
             "videos": [to_view(r) for r in rows],
             "filters": [(key, text, counts[key]) for key, text, _ in FILTERS],
             "active_filter": selected[0],
+            "active_filter_label": selected[1],
             "type_options": TYPE_OPTIONS,
         },
     )
