@@ -3,7 +3,7 @@
 Split deliberately in two:
   * `extract_metadata(info)` is pure and takes a yt-dlp info dict, so every
     title-parsing rule is unit-testable without touching the network.
-  * `probe(url)` does the network call and layers channel defaults on top.
+  * `probe(url)` does the network call.
 """
 
 import asyncio
@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urlparse
 
 import yt_dlp
 
-from app.db import VIDEO_TYPES, get_conn
+from app.db import VIDEO_TYPES
 
 log = logging.getLogger(__name__)
 
@@ -72,9 +72,6 @@ class ProbeResult:
     artist: str | None = None
     title: str | None = None
     type: str = "mv"
-    # Suggested download profile. None means "no channel preference recorded",
-    # which the caller reads as "use the global default".
-    profile_id: int | None = None
     year: int | None = None
     # ISO YYYY-MM-DD. release_date is only set when YouTube reports one, which
     # is rarer than upload_date but more accurate for re-uploads.
@@ -245,28 +242,6 @@ def extract_metadata(info: dict) -> ProbeResult:
     )
 
 
-def apply_channel_defaults(result: ProbeResult) -> ProbeResult:
-    """Layer the channel's remembered type and profile on top of what was
-    detected, so neither has to be chosen twice for the same channel."""
-    if not result.channel_id:
-        return result
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT default_type, default_profile_id"
-            " FROM channels WHERE channel_id = ?",
-            (result.channel_id,),
-        ).fetchone()
-    if not row:
-        return result
-    if row["default_profile_id"] and not result.profile_id:
-        result.profile_id = row["default_profile_id"]
-    # A type detected from the title is more specific than a channel default,
-    # so the default only fills in when detection found nothing but "mv".
-    if row["default_type"] and result.type == "mv":
-        result.type = row["default_type"]
-    return result
-
-
 def fetch_info(url: str) -> dict:
     """Metadata only — no download."""
     opts = {
@@ -279,19 +254,18 @@ def fetch_info(url: str) -> dict:
         return ydl.extract_info(url, download=False)
 
 
-def probe(url_or_id: str, *, with_defaults: bool = True) -> ProbeResult:
+def probe(url_or_id: str) -> ProbeResult:
     video_id = parse_video_id(url_or_id)
     if not video_id:
         raise ValueError("not a recognisable YouTube video URL or id: " + repr(url_or_id))
     info = fetch_info("https://www.youtube.com/watch?v=" + video_id)
-    result = extract_metadata(info)
-    return apply_channel_defaults(result) if with_defaults else result
+    return extract_metadata(info)
 
 
-async def probe_async(url_or_id: str, *, with_defaults: bool = True) -> ProbeResult:
+async def probe_async(url_or_id: str) -> ProbeResult:
     """`probe` off the event loop — the yt-dlp lookup is blocking network I/O
     and would otherwise stall every other request for a second or two."""
     # Raise a bad URL immediately rather than paying for a thread hop first.
     if not parse_video_id(url_or_id):
         raise ValueError("not a recognisable YouTube video URL or id: " + repr(url_or_id))
-    return await asyncio.to_thread(probe, url_or_id, with_defaults=with_defaults)
+    return await asyncio.to_thread(probe, url_or_id)

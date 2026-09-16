@@ -55,10 +55,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE TABLE IF NOT EXISTS channels (
     channel_id         TEXT PRIMARY KEY,
+    -- Written to the NFO as <studio>.
     name               TEXT,
-    default_type       TEXT,
-    default_profile_id INTEGER REFERENCES profiles(id),
-    auto_confirm       INTEGER NOT NULL DEFAULT 0,
     created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -135,10 +133,14 @@ DEFAULT_PROFILE = {
 # Additive schema changes for databases created by an earlier version.
 # (table, column, definition) — applied only when the column is missing.
 #
-# Retired, deliberately not dropped: videos.label and channels.default_label.
-# The label was a hand-typed copy of the channel name; the NFO <studio> now
-# comes from channels.name instead. Nothing reads or writes the old columns,
-# but databases that have them keep the values rather than losing data.
+# Retired, deliberately not dropped — nothing reads or writes them, but
+# databases that have them keep the values rather than losing data:
+#   videos.label, channels.default_label
+#     A hand-typed copy of the channel name; <studio> now comes from
+#     channels.name.
+#   channels.default_type, channels.default_profile_id, channels.auto_confirm
+#     Per-channel defaults. Most videos use the default profile anyway and
+#     fixing a mis-detected type is one click, so they were not worth it.
 MIGRATIONS = [
     ("profiles", "is_default", "INTEGER NOT NULL DEFAULT 0"),
     ("videos", "upload_date", "TEXT"),

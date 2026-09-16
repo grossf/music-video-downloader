@@ -100,10 +100,6 @@ the channel is the label (HYBE LABELS, SMTOWN, JYP), so that guess would
 quietly organise the library by record company. A video with no artist is left
 empty and flagged `needs_review`, which the web UI can filter on.
 
-Type and quality profile are remembered per channel, as a side effect of
-filling in the form. There is no channel admin screen on purpose: the second
-time you queue something from a channel, those fields are already filled.
-
 The uploading channel's name is written to the NFO as `<studio>`
 automatically. There is no separate label field: in practice it was always the
 channel name retyped by hand, and wrong as a label anyway, since a distribution
@@ -152,11 +148,9 @@ AV1 compresses better, but VP9 direct-plays on far more Jellyfin clients, so
 a 4K profile preferring VP9 avoids transcoding.
 
 A profile can be chosen per video — in the addon popup, in the web add form,
-or in the edit form. A choice that differs from the global default is
-remembered for that channel, so the second video from the same channel comes
-back pre-selected. Choosing the default itself is not treated as a preference,
-or the channel would be pinned to whatever the default happened to be that
-day.
+or in the edit form. Every form starts on the global default. Nothing is
+remembered per channel: most videos use the default profile, and a
+mis-detected type is one click to fix.
 
 Changing a video's profile does not re-download it. Use **Redownload** on a
 completed video to fetch it again with the current profile; hand-corrected
@@ -166,5 +160,4 @@ metadata is kept and only the file is replaced.
 
 The upgrade worker that re-checks whether YouTube has since published a higher
 resolution (`cutoff_height`, `allow_upgrades` and the `downloaded_*` columns
-exist to support it), per-channel admin, progress bars, playlists, pagination
-and search.
+exist to support it), progress bars, playlists, pagination and search.

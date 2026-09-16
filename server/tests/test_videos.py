@@ -45,27 +45,6 @@ def test_enqueue_requeues_a_failed_video(db):
     assert again["retry_count"] == 1
 
 
-def test_enqueue_learns_the_channel_name_and_type(db):
-    videos.enqueue(
-        video_id="aaaaaaaaaaa",
-        title="A",
-        channel_id="UCchoom",
-        channel_name="STUDIO CHOOM",
-        video_type="performance",
-    )
-    row = channel_row("UCchoom")
-    assert row["name"] == "STUDIO CHOOM"
-    assert row["default_type"] == "performance"
-
-
-def test_channel_defaults_are_never_overwritten(db):
-    videos.enqueue(
-        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", video_type="performance"
-    )
-    videos.enqueue(
-        video_id="bbbbbbbbbbb", title="B", channel_id="UCx", video_type="fancam"
-    )
-    assert channel_row("UCx")["default_type"] == "performance"
 
 
 def test_video_reads_carry_the_channel_name(db):
@@ -86,23 +65,6 @@ def test_new_databases_have_no_label_columns(db):
     assert "label" not in video_cols
     assert "default_label" not in channel_cols
 
-
-def test_fallback_type_is_not_recorded_as_a_channel_default(db):
-    """'mv' is the detection fallback, not a preference.
-
-    Recording it would look deliberate and, because defaults are only filled in
-    when empty, would stop the channel ever learning its real default.
-    """
-    videos.enqueue(
-        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", video_type="mv"
-    )
-    assert channel_row("UCx")["default_type"] is None
-
-    # A genuine signal still gets through afterwards.
-    videos.enqueue(
-        video_id="bbbbbbbbbbb", title="B", channel_id="UCx", video_type="performance"
-    )
-    assert channel_row("UCx")["default_type"] == "performance"
 
 
 def test_enqueue_without_channel_id_does_not_crash(db):

@@ -111,19 +111,6 @@ def test_edit_changing_type_adds_the_version_suffix(db):
     assert updated["file_path"].endswith("A - Song (Performance) [aaaaaaaaaaa].mkv")
 
 
-def test_edit_teaches_the_channel_its_type(db):
-    make_done_video(channel_id="UCchoom", channel_name="STUDIO CHOOM")
-    videos.update_metadata(
-        "aaaaaaaaaaa", artist="A", title="Song", video_type="performance"
-    )
-    from app.db import get_conn
-
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT default_type FROM channels WHERE channel_id = ?", ("UCchoom",)
-        ).fetchone()
-    assert row["default_type"] == "performance"
-
 
 def test_edit_writes_the_channel_name_as_studio(db):
     """No label is typed any more; the NFO studio is the uploading channel,

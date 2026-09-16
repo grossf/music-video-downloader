@@ -84,36 +84,21 @@
     <dl>
       <dt>Video ID</dt><dd><code>{{ v.video_id }}</code></dd>
       <dt>Channel</dt>
-      <dd>{% if channel %}{{ channel.name or channel.channel_id }}{% else %}—{% endif %}</dd>
-      <dt>Uploaded</dt><dd>{{ v.upload_date or "—" }}</dd>
+      <dd>{{ v.channel_name or v.channel_id or "—" }}</dd>
+      {# One date row. The release date is more accurate when YouTube reports
+         one; rows downloaded before full dates were stored only have a year,
+         which is labelled as such rather than passed off as a date. #}
       {% if v.release_date %}
         <dt>Released</dt><dd>{{ v.release_date }}</dd>
+      {% elif v.upload_date %}
+        <dt>Uploaded</dt><dd>{{ v.upload_date }}</dd>
+      {% else %}
+        <dt>Year</dt><dd>{{ v.year or "—" }}</dd>
       {% endif %}
-      <dt>Year</dt><dd>{{ v.year or "—" }}</dd>
       <dt>Added via</dt><dd>{{ v.source }}</dd>
       <dt>Retries</dt><dd>{{ v.retry_count }}</dd>
     </dl>
   </section>
-
-  {% if channel %}
-  <section class="panel">
-    <h2>Channel defaults</h2>
-    <div class="sub" style="margin-bottom:.8rem">
-      What <strong>{{ channel.name or channel.channel_id }}</strong> pre-fills
-      the next time you queue a video from it. Learned from what you chose the
-      first time, and never overwritten once set. The channel name itself
-      is written to the NFO as the studio.
-    </div>
-    <dl>
-      <dt>Type</dt>
-      <dd>{{ channel_defaults.type or "not learned yet" }}</dd>
-      <dt>Profile</dt>
-      <dd>
-        {{ channel_defaults.profile or "none — the global default is used" }}
-      </dd>
-    </dl>
-  </section>
-  {% endif %}
 
   <section class="panel">
     <h2>Files</h2>

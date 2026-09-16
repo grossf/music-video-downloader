@@ -56,7 +56,7 @@
       <select id="add-profile" name="profile_id">
         {% for prof in profile_options %}
           <option value="{{ prof.id }}"
-            {% if p.profile_id == prof.id or (not p.profile_id and prof.is_default) %}selected{% endif %}>
+            {% if prof.is_default %}selected{% endif %}>
             {{ prof.name }} — {{ prof.summary }}
           </option>
         {% endfor %}

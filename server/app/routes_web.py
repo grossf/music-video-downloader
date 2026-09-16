@@ -183,34 +183,11 @@ async def video_detail(request: Request, video_id: str):
             status_code=404,
         )
 
-    channel = None
-    channel_profile_name = None
-    if row["channel_id"]:
-        with get_conn() as conn:
-            found = conn.execute(
-                "SELECT c.*, p.name AS profile_name FROM channels c"
-                " LEFT JOIN profiles p ON p.id = c.default_profile_id"
-                " WHERE c.channel_id = ?",
-                (row["channel_id"],),
-            ).fetchone()
-        if found:
-            channel = dict(found)
-            channel_profile_name = channel.get("profile_name")
-
-    channel_defaults = {
-        # The display name, not the raw enum — "Dance Practice", not
-        # "dance_practice".
-        "type": TYPE_TAGS.get((channel or {}).get("default_type")),
-        "profile": channel_profile_name,
-    }
-
     return templates.TemplateResponse(
         request=request,
         name="detail.html",
         context={
             "v": to_view(row),
-            "channel": channel,
-            "channel_defaults": channel_defaults,
             "profile": profiles_service.get_profile(row["profile_id"])
             if row["profile_id"]
             else None,

@@ -57,9 +57,8 @@ function showDetail(parts) {
 
 let profiles = [];
 
-/* `suggested` is the channel's remembered profile when it has one, otherwise
- * the server's global default. */
-async function fillProfiles(suggested) {
+/* Pre-selects the server's default profile. */
+async function fillProfiles() {
   const select = el("profile");
   const result = await browser.runtime.sendMessage({ type: "get-profiles" });
 
@@ -76,7 +75,7 @@ async function fillProfiles(suggested) {
   }
 
   profiles = result.data.profiles;
-  const chosen = suggested || result.data.default_profile_id;
+  const chosen = result.data.default_profile_id;
 
   select.innerHTML = "";
   for (const profile of profiles) {
@@ -156,11 +155,10 @@ async function prefillForm() {
   fillTypeOptions("mv");
   el("form").classList.remove("hidden");
 
-  /* Both in flight at once: the dropdown appears immediately with the server
-   * default selected, and the probe refines it to the channel's remembered
-   * profile a second later. */
+  /* Both in flight at once, so the profile picker is ready while the
+   * metadata lookup is still running. */
   const [, result] = await Promise.all([
-    fillProfiles(null),
+    fillProfiles(),
     browser.runtime.sendMessage({
       type: "probe",
       url: `https://www.youtube.com/watch?v=${context.videoId}`,
@@ -178,11 +176,6 @@ async function prefillForm() {
   el("artist").value = p.artist || "";
   el("title").value = p.title || hints.pageTitle || "";
   fillTypeOptions(p.type || "mv");
-
-  if (p.profile_id) {
-    el("profile").value = String(p.profile_id);
-    showProfileSummary();
-  }
 
   showDetail([p.channel_name, p.available_heights?.length ? `up to ${Math.max(...p.available_heights)}p` : null]);
 

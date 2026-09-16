@@ -3,15 +3,6 @@
 from app.db import default_profile_id, get_conn
 from app.services import profiles, videos
 from app.services.formats import summarize
-from app.services.probe import ProbeResult, apply_channel_defaults
-
-
-def channel_row(channel_id: str) -> dict | None:
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM channels WHERE channel_id = ?", (channel_id,)
-        ).fetchone()
-    return dict(row) if row else None
 
 
 def test_enqueue_honours_an_explicit_profile(db):
@@ -26,71 +17,42 @@ def test_enqueue_without_a_profile_uses_the_global_default(db):
     assert row["profile_id"] == default_profile_id()
 
 
-def test_channel_learns_a_deliberately_chosen_profile(db):
-    tv = profiles.create_profile(name="4K60", max_height=2160)
+def test_a_non_default_choice_is_not_carried_to_the_next_video(db):
+    """Per-channel defaults were removed: picking a profile for one video from
+    a channel says nothing about the next one."""
+    tv = profiles.create_profile(name="1080p", max_height=1080)
+    videos.enqueue(
+        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", profile_id=tv["id"]
+    )
+    second = videos.enqueue(video_id="bbbbbbbbbbb", title="B", channel_id="UCx")
+    assert second["profile_id"] == default_profile_id()
+
+
+def test_channels_record_only_their_name(db):
     videos.enqueue(
         video_id="aaaaaaaaaaa",
         title="A",
         channel_id="UCchoom",
         channel_name="STUDIO CHOOM",
-        profile_id=tv["id"],
+        video_type="performance",
     )
-    assert channel_row("UCchoom")["default_profile_id"] == tv["id"]
+    with get_conn() as conn:
+        columns = {r["name"] for r in conn.execute("PRAGMA table_info(channels)")}
+        row = dict(
+            conn.execute(
+                "SELECT * FROM channels WHERE channel_id = ?", ("UCchoom",)
+            ).fetchone()
+        )
+    assert row["name"] == "STUDIO CHOOM"
+    for retired in ("default_type", "default_profile_id", "auto_confirm"):
+        assert retired not in columns
 
 
-def test_channel_does_not_learn_the_global_default_as_a_preference(db):
-    """Picking whatever was already selected is not a choice. Recording it
-    would pin the channel to today's default forever, the same trap that made
-    default_type stick on its fallback value."""
-    videos.enqueue(
-        video_id="aaaaaaaaaaa",
-        title="A",
-        channel_id="UCx",
-        profile_id=default_profile_id(),
-    )
-    assert channel_row("UCx")["default_profile_id"] is None
-
-    # A genuinely different choice still gets through afterwards.
-    tv = profiles.create_profile(name="1080p", max_height=1080)
-    videos.enqueue(
-        video_id="bbbbbbbbbbb", title="B", channel_id="UCx", profile_id=tv["id"]
-    )
-    assert channel_row("UCx")["default_profile_id"] == tv["id"]
-
-
-def test_channel_profile_is_not_overwritten_once_learned(db):
-    first = profiles.create_profile(name="First", max_height=2160)
-    second = profiles.create_profile(name="Second", max_height=720)
-    videos.enqueue(video_id="aaaaaaaaaaa", title="A", channel_id="UCx", profile_id=first["id"])
-    videos.enqueue(video_id="bbbbbbbbbbb", title="B", channel_id="UCx", profile_id=second["id"])
-    assert channel_row("UCx")["default_profile_id"] == first["id"]
-
-
-def test_probe_suggests_the_channels_remembered_profile(db):
-    tv = profiles.create_profile(name="4K60", max_height=2160)
-    videos.enqueue(
-        video_id="aaaaaaaaaaa", title="A", channel_id="UCchoom", profile_id=tv["id"]
-    )
-
-    suggested = apply_channel_defaults(
-        ProbeResult(video_id="bbbbbbbbbbb", url="u", channel_id="UCchoom")
-    )
-    assert suggested.profile_id == tv["id"]
-
-
-def test_probe_suggests_nothing_for_an_unknown_channel(db):
-    result = apply_channel_defaults(
-        ProbeResult(video_id="aaaaaaaaaaa", url="u", channel_id="UCnew")
-    )
-    # None means "no preference recorded"; the caller falls back to the default.
-    assert result.profile_id is None
-
-
-def test_probe_without_a_channel_id_does_not_crash(db):
-    result = apply_channel_defaults(
-        ProbeResult(video_id="aaaaaaaaaaa", url="u", channel_id=None)
-    )
-    assert result.profile_id is None
+def test_channel_name_is_filled_in_but_never_overwritten(db):
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A", channel_id="UCx", channel_name=None)
+    videos.enqueue(video_id="bbbbbbbbbbb", title="B", channel_id="UCx", channel_name="First")
+    videos.enqueue(video_id="ccccccccccc", title="C", channel_id="UCx", channel_name="Second")
+    assert videos.get("ccccccccccc")["channel_name"] == "First"
 
 
 def test_summary_is_short_enough_for_a_dropdown():

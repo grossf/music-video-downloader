@@ -128,3 +128,51 @@ def test_in_flight_row_offers_no_destructive_actions():
     html = render_row(status="queued")
     assert "redownload" not in html
     assert "/delete" not in html
+
+
+# --- detail page: one date row ---------------------------------------------
+
+
+def render_source_dates(**overrides) -> str:
+    import re
+
+    from app.routes_web import TYPE_OPTIONS
+
+    row = {
+        "video_id": "aaaaaaaaaaa", "title": "Song", "artist": "A", "type": "mv",
+        "status": "done", "needs_review": 0, "error": None, "version": None,
+        "source": "addon", "retry_count": 0, "created_at": "", "updated_at": "",
+        "channel_id": "UCx", "channel_name": "1theK", "profile_id": None,
+        "profile_name": None, "year": 2018, "upload_date": None, "release_date": None,
+    }
+    row.update(overrides)
+    page = templates.get_template("detail.html").render(
+        v=to_view(row), profile=None, type_options=TYPE_OPTIONS,
+        profile_options=[], request=None,
+    )
+    source = page[page.index("<h2>Source</h2>"):page.index("<h2>Files</h2>")]
+    return re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", source))
+
+
+def test_detail_prefers_the_release_date():
+    text = render_source_dates(upload_date="2024-07-15", release_date="2019-06-12")
+    assert "Released 2019-06-12" in text
+    assert "2024-07-15" not in text and "Year" not in text
+
+
+def test_detail_falls_back_to_the_upload_date():
+    text = render_source_dates(upload_date="2018-07-16")
+    assert "Uploaded 2018-07-16" in text
+    assert "Year" not in text
+
+
+def test_detail_labels_a_bare_year_as_a_year():
+    """Rows downloaded before full dates were stored only have a year; showing
+    it under "Uploaded" would pass it off as a date."""
+    text = render_source_dates()
+    assert "Year 2018" in text
+    assert "Uploaded" not in text
+
+
+def test_detail_has_no_channel_defaults_panel():
+    assert "defaults" not in render_source_dates().lower()
