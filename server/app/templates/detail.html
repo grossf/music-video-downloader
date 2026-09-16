@@ -94,8 +94,9 @@
       {% else %}
         <dt>Year</dt><dd>{{ v.year or "—" }}</dd>
       {% endif %}
-      <dt>Added</dt>
-      <dd>{{ (v.created_at or "")[:16] or "—" }}{% if v.source %} <span class="sub">via {{ v.source }}</span>{% endif %}</dd>
+      <dt>Added via</dt><dd>{{ v.source or "—" }}</dd>
+      <dt>Added</dt><dd>{{ (v.created_at or "")[:16] or "—" }}</dd>
+      <dt>Updated</dt><dd>{{ (v.updated_at or "")[:16] or "—" }}</dd>
       {% if v.retry_count %}<dt>Retries</dt><dd>{{ v.retry_count }}</dd>{% endif %}
     </dl>
   </section>

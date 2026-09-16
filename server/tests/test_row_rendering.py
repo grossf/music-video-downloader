@@ -193,14 +193,16 @@ def render_detail(**overrides) -> str:
 
 
 def test_detail_has_no_record_panel():
-    html = render_detail()
-    assert "<h2>Record</h2>" not in html
-    assert "09:02" not in html  # "updated" is not shown
+    assert "<h2>Record</h2>" not in render_detail()
 
 
-def test_added_date_and_source_share_one_row():
-    text = render_source_dates(created_at="2026-09-16 08:38:02")
-    assert "Added 2026-09-16 08:38 via addon" in text
+def test_source_shows_origin_added_and_updated_as_separate_rows():
+    text = render_source_dates(
+        created_at="2026-09-16 08:38:02", updated_at="2026-09-16 09:02:13"
+    )
+    assert "Added via addon" in text
+    assert "Added 2026-09-16 08:38" in text
+    assert "Updated 2026-09-16 09:02" in text
 
 
 def test_retries_only_shown_when_there_were_some():
