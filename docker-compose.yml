@@ -1,0 +1,20 @@
+services:
+  mvd:
+    build: ./server
+    container_name: music-video-downloader
+    restart: unless-stopped
+    ports:
+      - "7345:8080"
+    environment:
+      MEDIA_ROOT: /media/music-videos
+      DATA_DIR: /data
+      API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
+      DOWNLOAD_CONCURRENCY: ${DOWNLOAD_CONCURRENCY:-1}
+      JELLYFIN_URL: ${JELLYFIN_URL:-}
+      JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # Must be the same host path the Jellyfin container mounts as its
+      # "Music Videos" library.
+      - ${MEDIA_HOST_PATH:-./.local/media}:/media/music-videos
+      - ${DATA_HOST_PATH:-./.local/data}:/data

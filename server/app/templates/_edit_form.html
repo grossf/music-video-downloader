@@ -1,0 +1,53 @@
+<tr id="video-{{ v.video_id }}">
+  <td colspan="7">
+    <form class="panel"
+          hx-post="/videos/{{ v.video_id }}"
+          hx-target="#video-{{ v.video_id }}"
+          hx-swap="outerHTML">
+      <div class="form-grid">
+        <div class="field">
+          <label for="artist-{{ v.video_id }}">Artist</label>
+          <input id="artist-{{ v.video_id }}" name="artist" value="{{ v.artist or '' }}"
+                 placeholder="leave empty to keep for review" autofocus>
+        </div>
+        <div class="field">
+          <label for="title-{{ v.video_id }}">Title</label>
+          <input id="title-{{ v.video_id }}" name="title" value="{{ v.title or '' }}">
+        </div>
+        <div class="field">
+          <label for="type-{{ v.video_id }}">Type</label>
+          <select id="type-{{ v.video_id }}" name="video_type">
+            {% for key, text in type_options %}
+              <option value="{{ key }}" {% if key == v.type %}selected{% endif %}>{{ text }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="label-{{ v.video_id }}">Label / Studio</label>
+          <input id="label-{{ v.video_id }}" name="label" value="{{ v.label or '' }}"
+                 list="known-labels">
+        </div>
+        <div class="field">
+          <label for="year-{{ v.video_id }}">Year</label>
+          <input id="year-{{ v.video_id }}" name="year" value="{{ v.year or '' }}"
+                 inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="version-{{ v.video_id }}">Version</label>
+          <input id="version-{{ v.video_id }}" name="version" value="{{ v.version or '' }}"
+                 placeholder="auto from type">
+        </div>
+      </div>
+      <div class="sub" style="margin-top:.7rem">
+        Saving renames the file, rewrites the NFO and refreshes Jellyfin.
+      </div>
+      <div class="actions" style="margin-top:.7rem">
+        <button type="button"
+                hx-get="/videos/{{ v.video_id }}/row"
+                hx-target="#video-{{ v.video_id }}"
+                hx-swap="outerHTML">Cancel</button>
+        <button class="primary" type="submit">Save</button>
+      </div>
+    </form>
+  </td>
+</tr>

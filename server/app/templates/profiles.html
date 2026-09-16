@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table style="margin-bottom:1.5rem">
+  <thead>
+    <tr>
+      <th>Profile</th>
+      <th>Compiled selector</th>
+      <th style="width:90px">Videos</th>
+      <th style="width:260px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in profiles %}
+    <tr>
+      <td>
+        <strong>{{ p.name }}</strong>
+        {% if p.is_default %}<span class="badge s-done">default</span>{% endif %}
+        <div class="sub">
+          {% if p.format_override %}
+            raw override
+          {% else %}
+            max {{ p.max_height or "any" }}p{% if p.prefer_codecs %} · prefers {{ p.prefer_codecs.split(",")[0] }}{% endif %}
+          {% endif %}
+        </div>
+      </td>
+      <td class="sub"><code>{{ p.selector }}</code></td>
+      <td class="sub">{{ p.video_count }}</td>
+      <td>
+        <div class="actions">
+          <a href="/profiles/{{ p.id }}/edit"><button type="button">Edit</button></a>
+          {% if not p.is_default %}
+            <form method="post" action="/profiles/{{ p.id }}/default" style="display:inline">
+              <button type="submit">Make default</button>
+            </form>
+            <form method="post" action="/profiles/{{ p.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('Delete this profile? Videos using it fall back to the default.')">
+              <button class="danger" type="submit">Delete</button>
+            </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if error %}<div class="panel error" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
+
+<form class="panel" method="post"
+      action="{% if editing %}/profiles/{{ editing.id }}{% else %}/profiles{% endif %}"
+      style="max-width:900px">
+  <h2 style="margin-top:0;font-size:1rem">
+    {% if editing %}Edit &ldquo;{{ editing.name }}&rdquo;{% else %}New profile{% endif %}
+  </h2>
+
+  <div class="form-grid">
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" value="{{ editing.name if editing else '' }}" required>
+    </div>
+    <div class="field">
+      <label for="max_height">Max height</label>
+      <select id="max_height" name="max_height">
+        {% for h in [0, 720, 1080, 1440, 2160] %}
+          <option value="{{ h or '' }}"
+            {% if editing and (editing.max_height or 0) == h %}selected{% endif %}
+            {% if not editing and h == 2160 %}selected{% endif %}>
+            {{ "no limit" if not h else h ~ "p" }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="prefer_codecs">Preferred codec</label>
+      <select id="prefer_codecs" name="prefer_codecs">
+        {% for c, text in codec_options %}
+          <option value="{{ c }}"
+            {% if editing and editing.prefer_codecs and editing.prefer_codecs.split(",")[0] == c %}selected{% endif %}
+            {% if not editing and c == "vp9" %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="prefer_fps">Prefer high frame rate</label>
+      <select id="prefer_fps" name="prefer_fps">
+        <option value="" {% if editing and not editing.prefer_fps %}selected{% endif %}>No</option>
+        <option value="60" {% if not editing or editing.prefer_fps %}selected{% endif %}>Yes (prefer 50/60fps)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="container">Container</label>
+      <select id="container" name="container">
+        {% for c in ["mkv", "mp4"] %}
+          <option value="{{ c }}" {% if editing and editing.container == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="field" style="margin-top:.8rem">
+    <label for="format_override">Raw yt-dlp selector (optional)</label>
+    <input id="format_override" name="format_override"
+           value="{{ editing.format_override or '' if editing else '' }}"
+           placeholder="e.g. bv*+ba/b — leave empty to use the fields above">
+    <div class="sub" style="margin-top:.3rem">
+      When set, this wins outright and every field above is ignored. It is the
+      escape hatch for anything the structured fields cannot express.
+    </div>
+  </div>
+
+  <div class="sub" style="margin-top:.7rem">
+    4K note: 2160p on YouTube is VP9 or AV1. VP9 has far wider hardware decode
+    support, so preferring it avoids Jellyfin transcoding on most clients.
+  </div>
+
+  <div class="actions" style="margin-top:.9rem">
+    {% if editing %}<a href="/profiles"><button type="button">Cancel</button></a>{% endif %}
+    <button class="primary" type="submit">
+      {{ "Save profile" if editing else "Create profile" }}
+    </button>
+  </div>
+</form>
+{% endblock %}

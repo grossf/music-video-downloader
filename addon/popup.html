@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #1c1f26; --panel: #232733; --border: #2e3440;
+      --text: #e6e9ef; --muted: #949cad; --accent: #6ea8fe;
+      --ok: #4ba36b; --warn: #d0a215; --err: #cf5c5c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      width: 360px; margin: 0; padding: 12px;
+      background: var(--bg); color: var(--text);
+      font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    h1 { font-size: 13px; margin: 0 0 8px; font-weight: 600; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .status { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.err { background: var(--err); }
+    .dot.info { background: var(--accent); }
+    .field { margin-bottom: 8px; }
+    .field label {
+      display: block; font-size: 10px; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); margin-bottom: 3px;
+    }
+    input, select {
+      width: 100%; font: inherit; color: var(--text);
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 4px; padding: 5px 7px;
+    }
+    input:focus, select:focus { outline: 1px solid var(--accent); }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    button {
+      font: inherit; border-radius: 4px; padding: 6px 10px; cursor: pointer;
+      background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary {
+      background: var(--accent); color: #0b1220;
+      border-color: var(--accent); font-weight: 600;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    .actions { display: flex; gap: 8px; margin-top: 10px; }
+    .actions button { flex: 1; }
+    footer {
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    a { color: var(--accent); text-decoration: none; font-size: 12px; }
+    a:hover { text-decoration: underline; }
+    .hidden { display: none; }
+    .error { color: var(--err); font-size: 12px; margin-top: 6px; }
+    .review { color: var(--warn); font-size: 11px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="status">
+    <span class="dot info" id="dot"></span>
+    <strong id="state-text">Checking…</strong>
+  </div>
+
+  <div id="detail" class="muted"></div>
+
+  <form id="form" class="hidden">
+    <div class="field">
+      <label for="artist">Artist</label>
+      <input id="artist" name="artist" placeholder="blank = flag for review">
+    </div>
+    <div class="field">
+      <label for="title">Title</label>
+      <input id="title" name="title">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="type">Type</label>
+        <select id="type" name="type"></select>
+      </div>
+      <div class="field">
+        <label for="label">Label / Studio</label>
+        <input id="label" name="label">
+      </div>
+    </div>
+    <div class="review hidden" id="review-note">
+      No artist detected — the channel name is not used, since it is
+      usually the label.
+    </div>
+    <div class="actions">
+      <button class="primary" type="submit" id="submit">Download</button>
+    </div>
+    <div class="error hidden" id="error"></div>
+  </form>
+
+  <footer>
+    <a href="#" id="library-link" target="_blank">Open library</a>
+    <a href="#" id="options-link">Settings</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

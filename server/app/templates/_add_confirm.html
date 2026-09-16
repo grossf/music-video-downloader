@@ -1,0 +1,68 @@
+{% if error %}
+  <div class="panel error">{{ error }}</div>
+{% else %}
+<form class="panel" hx-post="/add" hx-target="#probe-result" hx-swap="innerHTML">
+  <input type="hidden" name="video_id" value="{{ p.video_id }}">
+  <input type="hidden" name="channel_id" value="{{ p.channel_id or '' }}">
+  <input type="hidden" name="channel_name" value="{{ p.channel_name or '' }}">
+  <input type="hidden" name="duration" value="{{ p.duration or '' }}">
+
+  <div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:.9rem">
+    {% if p.thumbnail %}
+      <img src="{{ p.thumbnail }}" alt="" style="width:160px;border-radius:4px">
+    {% endif %}
+    <div>
+      <strong>{{ p.raw_title }}</strong>
+      <div class="sub">
+        {{ p.channel_name or "unknown channel" }}
+        {% if p.available_heights %}
+          &middot; up to {{ p.available_heights|max }}p
+        {% endif %}
+      </div>
+      {% if p.confidence == "low" %}
+        <div class="sub" style="margin-top:.4rem">
+          <span class="badge review">needs review</span>
+          No artist could be read from this video — the channel name is
+          deliberately not used, since it is usually the label.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div class="field">
+      <label for="add-artist">Artist</label>
+      <input id="add-artist" name="artist" value="{{ p.artist or '' }}"
+             {% if not p.artist %}autofocus{% endif %}>
+    </div>
+    <div class="field">
+      <label for="add-title">Title</label>
+      <input id="add-title" name="title" value="{{ p.title or '' }}">
+    </div>
+    <div class="field">
+      <label for="add-type">Type</label>
+      <select id="add-type" name="video_type">
+        {% for key, text in type_options %}
+          <option value="{{ key }}" {% if key == p.type %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="add-label">Label / Studio</label>
+      <input id="add-label" name="label" value="{{ p.label or '' }}" list="known-labels">
+    </div>
+    <div class="field">
+      <label for="add-year">Year</label>
+      <input id="add-year" name="year" value="{{ p.year or '' }}" inputmode="numeric">
+    </div>
+  </div>
+
+  <datalist id="known-labels">
+    {% for label in known_labels %}<option value="{{ label }}">{% endfor %}
+  </datalist>
+
+  <div class="actions" style="margin-top:.9rem">
+    <button class="primary" type="submit">Download</button>
+  </div>
+</form>
+{% endif %}

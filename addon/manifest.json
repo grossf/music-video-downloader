@@ -1,0 +1,45 @@
+{
+  "manifest_version": 2,
+  "name": "Music Video Downloader",
+  "version": "0.1.0",
+  "description": "Shows whether the YouTube video you are watching is already in your library, and queues it if not.",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "music-video-downloader@local",
+      "strict_min_version": "115.0"
+    }
+  },
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "*://*.youtube.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "Music Video Downloader",
+    "default_icon": "icons/icon.svg"
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}

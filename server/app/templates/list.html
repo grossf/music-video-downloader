@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="filters">
+  {% for key, text, count in filters %}
+    <a href="/?filter={{ key }}" class="{{ 'active' if key == active_filter else '' }}">
+      {{ text }} ({{ count }})
+    </a>
+  {% endfor %}
+</div>
+
+<datalist id="known-labels">
+  {% for label in known_labels %}<option value="{{ label }}">{% endfor %}
+</datalist>
+
+{% if videos %}
+<table>
+  <thead>
+    <tr>
+      <th style="width:100px"></th>
+      <th>Title</th>
+      <th style="width:120px">Type</th>
+      <th style="width:140px">Label</th>
+      <th style="width:150px">Status</th>
+      <th style="width:150px">Quality</th>
+      <th style="width:150px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in videos %}{% include "_row.html" %}{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">
+  Nothing here yet. <a href="/add">Add a video</a> or queue one from the Firefox addon.
+</div>
+{% endif %}
+{% endblock %}

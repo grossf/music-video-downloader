@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel" style="max-width:720px">
+  <h2 style="margin-top:0;font-size:1rem">Add a video</h2>
+  <p class="sub" style="margin-top:0">
+    Paste a YouTube link. It is looked up first so the fields come back filled in —
+    you are never typing metadata blind.
+  </p>
+  <form hx-post="/add/probe" hx-target="#probe-result" hx-swap="innerHTML"
+        hx-indicator="#probing">
+    <div style="display:flex;gap:.5rem">
+      <input name="url" style="flex:1"
+             placeholder="https://www.youtube.com/watch?v=..." autofocus required>
+      <button class="primary" type="submit">Look up</button>
+    </div>
+    <div id="probing" class="sub htmx-indicator" style="margin-top:.5rem">
+      Looking up metadata…
+    </div>
+  </form>
+</div>
+
+<div id="probe-result" style="margin-top:1rem;max-width:720px"></div>
+{% endblock %}

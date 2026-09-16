@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Music Video Downloader{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --bg: #14161a;
+      --panel: #1c1f26;
+      --panel-2: #232733;
+      --border: #2e3440;
+      --text: #e6e9ef;
+      --muted: #949cad;
+      --accent: #6ea8fe;
+      --ok: #4ba36b;
+      --warn: #d0a215;
+      --err: #cf5c5c;
+      --dead: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header {
+      display: flex; align-items: center; gap: 1.25rem;
+      padding: 0.9rem 1.5rem; border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    header h1 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+    header nav { display: flex; gap: 1rem; margin-left: auto; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+
+    .filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filters a {
+      padding: 0.3rem 0.75rem; border: 1px solid var(--border);
+      border-radius: 999px; color: var(--muted); font-size: 0.85rem;
+    }
+    .filters a.active { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); font-weight: 600;
+      padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: var(--panel); }
+    .thumb { width: 88px; height: 50px; object-fit: cover; border-radius: 3px; background: var(--panel-2); display: block; }
+    .thumb-empty { width: 88px; height: 50px; border-radius: 3px; background: var(--panel-2); }
+    .title-cell strong { font-weight: 600; }
+    .sub { color: var(--muted); font-size: 0.8rem; }
+
+    .badge {
+      display: inline-block; padding: 0.12rem 0.5rem; border-radius: 3px;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .s-done { background: rgba(75,163,107,.18); color: var(--ok); }
+    .s-queued { background: rgba(110,168,254,.18); color: var(--accent); }
+    .s-downloading { background: rgba(208,162,21,.18); color: var(--warn); }
+    .s-failed { background: rgba(207,92,92,.18); color: var(--err); }
+    .s-deleted { background: rgba(107,114,128,.2); color: var(--dead); }
+    .review { background: rgba(208,162,21,.18); color: var(--warn); }
+
+    button, input, select {
+      font: inherit; color: var(--text); background: var(--panel-2);
+      border: 1px solid var(--border); border-radius: 4px; padding: 0.35rem 0.6rem;
+    }
+    input:focus, select:focus { outline: 1px solid var(--accent); }
+    button { cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button.danger:hover { border-color: var(--err); color: var(--err); }
+    button.primary { background: var(--accent); color: #0b1220; border-color: var(--accent); font-weight: 600; }
+    .actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; }
+    .field label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .field input, .field select { width: 100%; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; }
+    .empty { color: var(--muted); padding: 3rem 1rem; text-align: center; }
+    .error { color: var(--err); font-size: 0.85rem; }
+    .htmx-request { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Music Video Downloader</h1>
+    <nav>
+      <a href="/">Library</a>
+      <a href="/add">Add video</a>
+      <a href="/profiles">Profiles</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

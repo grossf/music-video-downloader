@@ -1,0 +1,66 @@
+{#
+  A queued or downloading row refreshes itself. Without this the library page
+  is static: a row added before its download finished keeps showing an empty
+  thumbnail and a stale status until the page is reloaded by hand.
+  The swapped-in replacement only carries hx-trigger while still in flight, so
+  polling stops by itself as soon as the row renders as done.
+#}
+<tr id="video-{{ v.video_id }}"
+    {% if v.status in ("queued", "downloading") %}
+      hx-get="/videos/{{ v.video_id }}/row"
+      hx-trigger="every 3s"
+      hx-swap="outerHTML"
+    {% endif %}>
+  <td>
+    {% if v.thumb_url %}
+      <img class="thumb" src="{{ v.thumb_url }}" alt="">
+    {% else %}
+      <div class="thumb-empty"></div>
+    {% endif %}
+  </td>
+  <td class="title-cell">
+    <strong>{{ v.title or v.video_id }}</strong>
+    {% if v.version %}<span class="sub">({{ v.version }})</span>{% endif %}
+    <div class="sub">
+      {% if v.artist %}{{ v.artist }}{% else %}<em>no artist</em>{% endif %}
+      &middot;
+      <a href="https://www.youtube.com/watch?v={{ v.video_id }}" target="_blank"
+         rel="noopener">{{ v.video_id }}</a>
+    </div>
+  </td>
+  <td class="sub">{{ v.type_label }}</td>
+  <td class="sub">{{ v.label or "—" }}</td>
+  <td>
+    <span class="badge s-{{ v.status }}">{{ v.status }}</span>
+    {% if v.needs_review and v.status != "deleted" %}
+      <span class="badge review" title="Extraction was not confident">review</span>
+    {% endif %}
+    {% if v.error %}<div class="error" title="{{ v.error }}">{{ v.error[:60] }}</div>{% endif %}
+  </td>
+  <td class="sub">{{ v.quality }}</td>
+  <td>
+    <div class="actions">
+      {% if v.status == "done" %}
+        <button hx-get="/videos/{{ v.video_id }}/edit"
+                hx-target="#video-{{ v.video_id }}"
+                hx-swap="outerHTML">Edit</button>
+        <button hx-post="/videos/{{ v.video_id }}/redownload"
+                hx-target="#video-{{ v.video_id }}"
+                hx-swap="outerHTML"
+                title="Fetch again using the current default profile. Your metadata is kept."
+                hx-confirm="Download &quot;{{ v.title or v.video_id }}&quot; again with the current profile? The existing file is replaced; your artist/title edits are kept.">
+          Redownload
+        </button>
+      {% endif %}
+      {% if v.status in ("done", "failed", "deleted") %}
+        <button class="danger"
+                hx-post="/videos/{{ v.video_id }}/delete"
+                hx-target="#video-{{ v.video_id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete the files for &quot;{{ v.title or v.video_id }}&quot;? The entry is kept so it is not silently re-downloaded.">
+          Delete
+        </button>
+      {% endif %}
+    </div>
+  </td>
+</tr>
