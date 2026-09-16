@@ -176,3 +176,49 @@ def test_detail_labels_a_bare_year_as_a_year():
 
 def test_detail_has_no_channel_defaults_panel():
     assert "defaults" not in render_source_dates().lower()
+
+
+def render_detail(**overrides) -> str:
+    row = {
+        "video_id": "aaaaaaaaaaa", "title": "Song", "artist": "A", "type": "mv",
+        "status": "done", "needs_review": 0, "error": None, "version": None,
+        "source": "addon", "retry_count": 0,
+        "created_at": "2026-09-16 08:38:02", "updated_at": "2026-09-16 09:02:13",
+        "channel_id": "UCx", "channel_name": "1theK", "profile_id": None,
+        "profile_name": None, "year": 2018, "upload_date": None, "release_date": None,
+        "file_path": "/media/A/A - Song [aaaaaaaaaaa].mkv",
+    }
+    row.update(overrides)
+    return templates.get_template("detail.html").render(
+        v=to_view(row), profile=None, type_options=TYPE_OPTIONS,
+        profile_options=[], request=None,
+    )
+
+
+def test_detail_has_no_record_panel():
+    html = render_detail()
+    assert "<h2>Record</h2>" not in html
+    assert "09:02" not in html  # "updated" is not shown
+
+
+def test_added_date_and_source_share_one_row():
+    text = render_source_dates(created_at="2026-09-16 08:38:02")
+    assert "Added 2026-09-16 08:38 via addon" in text
+
+
+def test_retries_only_shown_when_there_were_some():
+    assert "Retries" not in render_source_dates(retry_count=0)
+    assert "Retries 2" in render_source_dates(retry_count=2)
+
+
+def test_files_panel_sits_outside_the_two_column_grid():
+    """Paths need the full page width to stay readable."""
+    html = render_detail()
+    grid_end = html.index("</div>", html.index("<h2>Source</h2>"))
+    assert html.index("<h2>Files</h2>") > grid_end
+
+
+def test_detail_has_no_explanatory_hints():
+    html = render_detail()
+    assert "performs no external" not in html
+    assert "Saving renames the file" not in html
