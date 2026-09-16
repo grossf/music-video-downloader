@@ -30,8 +30,9 @@ NOW = "datetime('now')"
 # video used. LEFT JOIN, not INNER: a video whose profile was deleted must
 # still be listed rather than vanishing from the library.
 VIDEO_SELECT = (
-    "SELECT v.*, p.name AS profile_name FROM videos v"
+    "SELECT v.*, p.name AS profile_name, c.name AS channel_name FROM videos v"
     " LEFT JOIN profiles p ON p.id = v.profile_id"
+    " LEFT JOIN channels c ON c.channel_id = v.channel_id"
 )
 
 
@@ -81,7 +82,6 @@ def remember_channel(
     channel_id: str | None,
     *,
     name: str | None = None,
-    label: str | None = None,
     video_type: str | None = None,
     profile_id: int | None = None,
 ) -> None:
@@ -101,19 +101,19 @@ def remember_channel(
         video_type = None
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT channel_id, name, default_label, default_type,"
-            " default_profile_id FROM channels WHERE channel_id = ?",
+            "SELECT channel_id, name, default_type, default_profile_id"
+            " FROM channels WHERE channel_id = ?",
             (channel_id,),
         ).fetchone()
         if row is None:
             conn.execute(
-                "INSERT INTO channels (channel_id, name, default_label,"
-                " default_type, default_profile_id) VALUES (?, ?, ?, ?, ?)",
-                (channel_id, name, label, video_type, profile_id),
+                "INSERT INTO channels (channel_id, name, default_type,"
+                " default_profile_id) VALUES (?, ?, ?, ?)",
+                (channel_id, name, video_type, profile_id),
             )
             log.info(
-                "learned channel %s (%s) label=%s type=%s profile=%s",
-                channel_id, name, label, video_type, profile_id,
+                "learned channel %s (%s) type=%s profile=%s",
+                channel_id, name, video_type, profile_id,
             )
             return
 
@@ -121,9 +121,6 @@ def remember_channel(
         if name and not row["name"]:
             updates.append("name = ?")
             params.append(name)
-        if label and not row["default_label"]:
-            updates.append("default_label = ?")
-            params.append(label)
         if video_type and not row["default_type"]:
             updates.append("default_type = ?")
             params.append(video_type)
@@ -145,7 +142,6 @@ def enqueue(
     artist: str | None = None,
     title: str | None = None,
     video_type: str = "mv",
-    label: str | None = None,
     year: int | None = None,
     duration: int | None = None,
     channel_id: str | None = None,
@@ -170,7 +166,6 @@ def enqueue(
     remember_channel(
         channel_id,
         name=channel_name,
-        label=label,
         video_type=video_type,
         profile_id=deliberate_profile,
     )
@@ -187,7 +182,6 @@ def enqueue(
         "artist": artist,
         "title": title,
         "type": video_type,
-        "label": label,
         "year": year,
         "duration": duration,
         "status": "queued",
@@ -246,7 +240,6 @@ def update_metadata(
     artist: str | None = None,
     title: str | None = None,
     video_type: str | None = None,
-    label: str | None = None,
     year: int | None = None,
     version: str | None = None,
     profile_id: int | None = None,
@@ -269,7 +262,6 @@ def update_metadata(
 
     artist = _blank_to_none(artist)
     title = _blank_to_none(title)
-    label = _blank_to_none(label)
     version = _blank_to_none(version)
     video_type = video_type or row["type"]
 
@@ -307,7 +299,11 @@ def update_metadata(
         # anything not passed here is silently lost from the file.
         premiered=row["release_date"] or row["upload_date"],
         video_type=video_type,
-        label=label,
+        # The uploading channel, captured automatically. It used to be a
+        # hand-typed "label", which in practice was always just the channel
+        # name re-entered by hand — and wrong as a label, since a distribution
+        # channel is not the artist's record company.
+        studio=row["channel_name"],
         runtime=row["duration"],
         thumb_name=placed.thumb.name if placed.thumb.exists() else None,
     )
@@ -316,13 +312,12 @@ def update_metadata(
         if old_media:
             prune_empty_dir(old_nfo.parent)
 
-    remember_channel(row["channel_id"], label=label, video_type=video_type)
+    remember_channel(row["channel_id"], video_type=video_type)
 
     fields = {
         "artist": artist,
         "title": title,
         "type": video_type,
-        "label": label,
         "version": version,
         "year": year if year is not None else row["year"],
         "file_path": str(placed.media),

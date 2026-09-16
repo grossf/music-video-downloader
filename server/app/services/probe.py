@@ -72,7 +72,6 @@ class ProbeResult:
     artist: str | None = None
     title: str | None = None
     type: str = "mv"
-    label: str | None = None
     # Suggested download profile. None means "no channel preference recorded",
     # which the caller reads as "use the global default".
     profile_id: int | None = None
@@ -247,23 +246,18 @@ def extract_metadata(info: dict) -> ProbeResult:
 
 
 def apply_channel_defaults(result: ProbeResult) -> ProbeResult:
-    """Layer the channel's remembered label/type on top of what was detected.
-
-    The label is a property of the channel, not the video, so it never has to
-    be typed twice for the same channel.
-    """
+    """Layer the channel's remembered type and profile on top of what was
+    detected, so neither has to be chosen twice for the same channel."""
     if not result.channel_id:
         return result
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT default_label, default_type, default_profile_id"
+            "SELECT default_type, default_profile_id"
             " FROM channels WHERE channel_id = ?",
             (result.channel_id,),
         ).fetchone()
     if not row:
         return result
-    if row["default_label"] and not result.label:
-        result.label = row["default_label"]
     if row["default_profile_id"] and not result.profile_id:
         result.profile_id = row["default_profile_id"]
     # A type detected from the title is more specific than a channel default,

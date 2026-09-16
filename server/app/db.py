@@ -19,8 +19,9 @@ VIDEO_TYPES = (
 
 VIDEO_STATUSES = ("queued", "downloading", "done", "failed", "deleted")
 
-# Human-readable form written into the NFO as a <tag>, which is what makes the
-# type filterable inside Jellyfin.
+# Human-readable form written into the NFO as a <tag>. Intended to make the
+# type filterable in Jellyfin — unverified for the Music Videos library, which
+# does not surface <studio>, so it may not surface tags either.
 TYPE_TAGS = {
     "mv": "MV",
     "performance": "Performance",
@@ -55,7 +56,6 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS channels (
     channel_id         TEXT PRIMARY KEY,
     name               TEXT,
-    default_label      TEXT,
     default_type       TEXT,
     default_profile_id INTEGER REFERENCES profiles(id),
     auto_confirm       INTEGER NOT NULL DEFAULT 0,
@@ -75,7 +75,6 @@ CREATE TABLE IF NOT EXISTS videos (
                        CHECK (type IN ('mv','performance','dance_practice',
                                        'live_stage','fancam','relay_dance',
                                        'behind','other')),
-    label              TEXT,
     year               INTEGER,
     -- ISO YYYY-MM-DD. upload_date is when it went up on YouTube;
     -- release_date is the actual release when YouTube reports one,
@@ -135,6 +134,11 @@ DEFAULT_PROFILE = {
 
 # Additive schema changes for databases created by an earlier version.
 # (table, column, definition) — applied only when the column is missing.
+#
+# Retired, deliberately not dropped: videos.label and channels.default_label.
+# The label was a hand-typed copy of the channel name; the NFO <studio> now
+# comes from channels.name instead. Nothing reads or writes the old columns,
+# but databases that have them keep the values rather than losing data.
 MIGRATIONS = [
     ("profiles", "is_default", "INTEGER NOT NULL DEFAULT 0"),
     ("videos", "upload_date", "TEXT"),

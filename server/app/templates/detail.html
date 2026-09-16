@@ -7,9 +7,6 @@
 {% block content %}
 <div style="margin-bottom:1rem"><a href="/">&larr; Library</a></div>
 
-<datalist id="known-labels">
-  {% for label in known_labels %}<option value="{{ label }}">{% endfor %}
-</datalist>
 
 <div class="panel" style="display:flex;gap:1.25rem;align-items:flex-start;margin-bottom:1rem">
   {% if v.thumb_url %}
@@ -88,7 +85,6 @@
       <dt>Video ID</dt><dd><code>{{ v.video_id }}</code></dd>
       <dt>Channel</dt>
       <dd>{% if channel %}{{ channel.name or channel.channel_id }}{% else %}—{% endif %}</dd>
-      <dt>Label</dt><dd>{{ v.label or "—" }}</dd>
       <dt>Uploaded</dt><dd>{{ v.upload_date or "—" }}</dd>
       {% if v.release_date %}
         <dt>Released</dt><dd>{{ v.release_date }}</dd>
@@ -104,12 +100,11 @@
     <h2>Channel defaults</h2>
     <div class="sub" style="margin-bottom:.8rem">
       What <strong>{{ channel.name or channel.channel_id }}</strong> pre-fills
-      the next time you queue a video from it. Learned from what you entered
-      the first time, and never overwritten once set.
+      the next time you queue a video from it. Learned from what you chose the
+      first time, and never overwritten once set. The channel name itself
+      is written to the NFO as the studio.
     </div>
     <dl>
-      <dt>Label</dt>
-      <dd>{{ channel_defaults.label or "not learned yet" }}</dd>
       <dt>Type</dt>
       <dd>{{ channel_defaults.type or "not learned yet" }}</dd>
       <dt>Profile</dt>

@@ -25,7 +25,7 @@ def build_nfo(
     year: int | None = None,
     premiered: str | None = None,
     video_type: str = "mv",
-    label: str | None = None,
+    studio: str | None = None,
     plot: str | None = None,
     runtime: int | None = None,
     thumb_name: str | None = None,
@@ -43,16 +43,16 @@ def build_nfo(
     # Jellyfin reads <premiered> as the full release date; <year> alone loses
     # the month and day.
     add("premiered", premiered)
-    # <studio> carries the label semantically; the duplicate <tag> below is
-    # what actually makes it filterable in the Jellyfin UI.
-    add("studio", label)
+    # The uploading channel. Only <studio> now — it used to be duplicated as a
+    # <tag> as well, which carried no extra information.
+    add("studio", studio)
     add("plot", plot)
     if runtime:
         add("runtime", max(1, round(runtime / 60)))  # Kodi expects minutes
 
-    for tag_value in (TYPE_TAGS.get(video_type), label):
-        if tag_value:
-            ET.SubElement(root, "tag").text = str(tag_value)
+    type_tag = TYPE_TAGS.get(video_type)
+    if type_tag:
+        ET.SubElement(root, "tag").text = str(type_tag)
 
     if thumb_name:
         ET.SubElement(root, "thumb").text = thumb_name
@@ -86,7 +86,7 @@ def read_nfo(path: Path) -> dict:
         "artist": text("artist"),
         "year": int(text("year")) if (text("year") or "").isdigit() else None,
         "premiered": text("premiered"),
-        "label": text("studio"),
+        "studio": text("studio"),
         "video_id": text("uniqueid"),
         "tags": [el.text for el in root.findall("tag") if el.text],
     }

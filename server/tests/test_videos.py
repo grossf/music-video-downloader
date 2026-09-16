@@ -45,29 +45,46 @@ def test_enqueue_requeues_a_failed_video(db):
     assert again["retry_count"] == 1
 
 
-def test_enqueue_learns_the_channel_label_once(db):
+def test_enqueue_learns_the_channel_name_and_type(db):
     videos.enqueue(
         video_id="aaaaaaaaaaa",
         title="A",
         channel_id="UCchoom",
         channel_name="STUDIO CHOOM",
-        label="STUDIO CHOOM",
         video_type="performance",
     )
     row = channel_row("UCchoom")
     assert row["name"] == "STUDIO CHOOM"
-    assert row["default_label"] == "STUDIO CHOOM"
     assert row["default_type"] == "performance"
 
 
 def test_channel_defaults_are_never_overwritten(db):
     videos.enqueue(
-        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", label="Correct Label"
+        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", video_type="performance"
     )
     videos.enqueue(
-        video_id="bbbbbbbbbbb", title="B", channel_id="UCx", label="Wrong Later Label"
+        video_id="bbbbbbbbbbb", title="B", channel_id="UCx", video_type="fancam"
     )
-    assert channel_row("UCx")["default_label"] == "Correct Label"
+    assert channel_row("UCx")["default_type"] == "performance"
+
+
+def test_video_reads_carry_the_channel_name(db):
+    """The NFO studio is taken from this joined value."""
+    videos.enqueue(
+        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", channel_name="1theK"
+    )
+    assert videos.get("aaaaaaaaaaa")["channel_name"] == "1theK"
+    assert videos.list_videos()[0]["channel_name"] == "1theK"
+
+
+def test_new_databases_have_no_label_columns(db):
+    from app.db import get_conn
+
+    with get_conn() as conn:
+        video_cols = {r["name"] for r in conn.execute("PRAGMA table_info(videos)")}
+        channel_cols = {r["name"] for r in conn.execute("PRAGMA table_info(channels)")}
+    assert "label" not in video_cols
+    assert "default_label" not in channel_cols
 
 
 def test_fallback_type_is_not_recorded_as_a_channel_default(db):
@@ -126,3 +143,16 @@ def test_mark_done_clears_a_previous_error(db):
     assert row["status"] == "done"
     assert row["error"] is None
     assert row["downloaded_height"] == 2160
+
+
+def test_worker_claims_rows_with_the_channel_name_attached(db):
+    """The worker writes the NFO studio from the claimed row. A bare SELECT *
+    on videos has no channel name, so the claim must go through the join."""
+    from app.worker import claim_next
+
+    videos.enqueue(
+        video_id="aaaaaaaaaaa", title="A", channel_id="UCx", channel_name="1theK"
+    )
+    claimed = claim_next()
+    assert claimed["status"] == "downloading"
+    assert claimed["channel_name"] == "1theK"

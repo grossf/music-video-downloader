@@ -64,7 +64,6 @@ def main() -> int:
         artist=result.artist,
         title=result.title,
         video_type=result.type,
-        label=result.label,
         year=result.year,
         duration=result.duration,
         channel_id=result.channel_id,

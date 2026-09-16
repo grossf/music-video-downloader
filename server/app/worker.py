@@ -49,10 +49,10 @@ def claim_next() -> dict | None:
         )
         if cursor.rowcount == 0:
             return None  # another worker got it first
-        claimed = conn.execute(
-            "SELECT * FROM videos WHERE video_id = ?", (row["video_id"],)
-        ).fetchone()
-    return dict(claimed)
+        video_id = row["video_id"]
+    # Re-read through the service so the row carries its joined channel and
+    # profile names, which a bare SELECT * on videos does not have.
+    return videos.get(video_id)
 
 
 def load_profile(profile_id: int | None) -> dict:
@@ -197,7 +197,7 @@ def finalise(video: dict, result: dict) -> dict:
         year=video.get("year") or result.get("year"),
         premiered=result.get("release_date") or result.get("upload_date"),
         video_type=video.get("type") or "mv",
-        label=video.get("label"),
+        studio=video.get("channel_name"),
         plot=(result.get("plot") or "")[:2000] or None,
         runtime=video.get("duration") or result.get("duration"),
         thumb_name=placed.thumb.name if placed.thumb.exists() else None,

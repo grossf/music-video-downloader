@@ -177,7 +177,6 @@ async function prefillForm() {
   context.probe = p;
   el("artist").value = p.artist || "";
   el("title").value = p.title || hints.pageTitle || "";
-  el("label").value = p.label || "";
   fillTypeOptions(p.type || "mv");
 
   if (p.profile_id) {
@@ -208,7 +207,6 @@ el("form").addEventListener("submit", async (event) => {
       artist: el("artist").value.trim() || null,
       title: el("title").value.trim() || null,
       type: el("type").value,
-      label: el("label").value.trim() || null,
       year: p.year ?? null,
       duration: p.duration ?? null,
       channel_id: p.channel_id ?? null,

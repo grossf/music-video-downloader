@@ -21,13 +21,13 @@ def test_type_becomes_a_filterable_tag():
     assert "Dance Practice" in [el.text for el in root.findall("tag")]
 
 
-def test_label_appears_as_studio_and_tag():
+def test_studio_is_written_once_not_duplicated_as_a_tag():
     root = parse(
-        build_nfo(video_id="a", title="S", label="HYBE LABELS", video_type="mv")
+        build_nfo(video_id="a", title="S", studio="STUDIO CHOOM", video_type="mv")
     )
-    assert root.findtext("studio") == "HYBE LABELS"
-    tags = [el.text for el in root.findall("tag")]
-    assert "HYBE LABELS" in tags and "MV" in tags
+    assert root.findtext("studio") == "STUDIO CHOOM"
+    # Only the type is a tag now; the studio used to be duplicated as one.
+    assert [el.text for el in root.findall("tag")] == ["MV"]
 
 
 def test_video_id_is_recorded_as_uniqueid():
@@ -67,14 +67,14 @@ def test_roundtrip_write_and_read(tmp_path):
         title="Song",
         artist="TWICE",
         year=2024,
-        label="JYP",
+        studio="JYP",
         video_type="performance",
     )
     data = read_nfo(path)
     assert data["title"] == "Song"
     assert data["artist"] == "TWICE"
     assert data["year"] == 2024
-    assert data["label"] == "JYP"
+    assert data["studio"] == "JYP"
     assert data["video_id"] == "abc"
     assert "Performance" in data["tags"]
 

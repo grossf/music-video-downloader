@@ -38,7 +38,6 @@ class EnqueueRequest(BaseModel):
     artist: str | None = None
     title: str | None = None
     video_type: str = Field(default="mv", alias="type")
-    label: str | None = None
     year: int | None = None
     duration: int | None = None
     channel_id: str | None = None
@@ -57,7 +56,7 @@ def _public(row: dict) -> dict:
         "artist": row["artist"],
         "title": row["title"],
         "type": row["type"],
-        "label": row["label"],
+        "channel_name": row.get("channel_name"),
         "needs_review": bool(row["needs_review"]),
         "downloaded_height": row["downloaded_height"],
         "profile_id": row["profile_id"],
@@ -139,7 +138,6 @@ async def enqueue_endpoint(payload: EnqueueRequest):
         artist=payload.artist,
         title=payload.title,
         video_type=payload.video_type,
-        label=payload.label,
         year=payload.year,
         duration=payload.duration,
         channel_id=payload.channel_id,

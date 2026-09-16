@@ -100,9 +100,17 @@ the channel is the label (HYBE LABELS, SMTOWN, JYP), so that guess would
 quietly organise the library by record company. A video with no artist is left
 empty and flagged `needs_review`, which the web UI can filter on.
 
-Label and type are remembered per channel, as a side effect of filling in the
-form. There is no channel admin screen on purpose: the second time you queue
-something from a channel, those fields are already filled.
+Type and quality profile are remembered per channel, as a side effect of
+filling in the form. There is no channel admin screen on purpose: the second
+time you queue something from a channel, those fields are already filled.
+
+The uploading channel's name is written to the NFO as `<studio>`
+automatically. There is no separate label field: in practice it was always the
+channel name retyped by hand, and wrong as a label anyway, since a distribution
+channel like 1theK is not the artist's record company. Jellyfin's Music Videos
+library does not appear to surface `<studio>` in its UI, so it is kept in the
+file only because it costs nothing. The type `<tag>` may not surface either —
+that is unverified.
 
 ## Testing
 

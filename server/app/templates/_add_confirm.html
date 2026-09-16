@@ -48,10 +48,6 @@
       </select>
     </div>
     <div class="field">
-      <label for="add-label">Label / Studio</label>
-      <input id="add-label" name="label" value="{{ p.label or '' }}" list="known-labels">
-    </div>
-    <div class="field">
       <label for="add-year">Year</label>
       <input id="add-year" name="year" value="{{ p.year or '' }}" inputmode="numeric">
     </div>
@@ -68,9 +64,6 @@
     </div>
   </div>
 
-  <datalist id="known-labels">
-    {% for label in known_labels %}<option value="{{ label }}">{% endfor %}
-  </datalist>
 
   <div class="actions" style="margin-top:.9rem">
     <button class="primary" type="submit">Download</button>

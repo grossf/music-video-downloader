@@ -11,8 +11,8 @@ def make_done_video(
     artist="OLDNAME",
     title="Song",
     video_type="mv",
-    label=None,
     channel_id="UCx",
+    channel_name="SOME CHANNEL",
 ):
     """Create a row in 'done' state with real files on disk."""
     videos.enqueue(
@@ -20,8 +20,8 @@ def make_done_video(
         artist=artist,
         title=title,
         video_type=video_type,
-        label=label,
         channel_id=channel_id,
+        channel_name=channel_name,
         duration=215,
     )
     paths = build_paths(
@@ -72,7 +72,7 @@ def test_edit_rewrites_the_nfo_and_removes_the_old_one(db):
     old_nfo = old.nfo
 
     updated = videos.update_metadata(
-        "aaaaaaaaaaa", artist="NEWNAME", title="Song", label="HYBE"
+        "aaaaaaaaaaa", artist="NEWNAME", title="Song"
     )
 
     assert not old_nfo.exists()
@@ -80,7 +80,8 @@ def test_edit_rewrites_the_nfo_and_removes_the_old_one(db):
 
     data = read_nfo(Path(updated["nfo_path"]))
     assert data["artist"] == "NEWNAME"
-    assert data["label"] == "HYBE"
+    # The studio comes from the uploading channel, not from anything typed.
+    assert data["studio"] == "SOME CHANNEL"
     assert data["video_id"] == "aaaaaaaaaaa"
 
 
@@ -110,18 +111,36 @@ def test_edit_changing_type_adds_the_version_suffix(db):
     assert updated["file_path"].endswith("A - Song (Performance) [aaaaaaaaaaa].mkv")
 
 
-def test_edit_teaches_the_channel_its_label(db):
-    make_done_video(channel_id="UCchoom")
+def test_edit_teaches_the_channel_its_type(db):
+    make_done_video(channel_id="UCchoom", channel_name="STUDIO CHOOM")
     videos.update_metadata(
-        "aaaaaaaaaaa", artist="A", title="Song", label="STUDIO CHOOM"
+        "aaaaaaaaaaa", artist="A", title="Song", video_type="performance"
     )
     from app.db import get_conn
 
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT default_label FROM channels WHERE channel_id = ?", ("UCchoom",)
+            "SELECT default_type FROM channels WHERE channel_id = ?", ("UCchoom",)
         ).fetchone()
-    assert row["default_label"] == "STUDIO CHOOM"
+    assert row["default_type"] == "performance"
+
+
+def test_edit_writes_the_channel_name_as_studio(db):
+    """No label is typed any more; the NFO studio is the uploading channel,
+    which was already captured automatically."""
+    from pathlib import Path
+
+    make_done_video(channel_id="UCchoom", channel_name="STUDIO CHOOM")
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="ILLIT", title="Song")
+    assert read_nfo(Path(updated["nfo_path"]))["studio"] == "STUDIO CHOOM"
+
+
+def test_edit_without_a_channel_writes_no_studio(db):
+    from pathlib import Path
+
+    make_done_video(channel_id=None, channel_name=None)
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="A", title="Song")
+    assert read_nfo(Path(updated["nfo_path"]))["studio"] is None
 
 
 def test_edit_is_refused_while_downloading(db):

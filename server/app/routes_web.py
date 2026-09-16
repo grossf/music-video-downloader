@@ -116,17 +116,6 @@ def to_view(row: dict) -> dict:
     }
 
 
-def known_labels() -> list[str]:
-    """Labels already seen, to drive the datalist. Typing one twice is waste."""
-    with get_conn() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT default_label FROM channels"
-            " WHERE default_label IS NOT NULL AND default_label <> ''"
-            " ORDER BY default_label"
-        ).fetchall()
-    return [r["default_label"] for r in rows]
-
-
 def _counts() -> dict[str, int]:
     with get_conn() as conn:
         total = conn.execute("SELECT COUNT(*) c FROM videos").fetchone()["c"]
@@ -168,7 +157,6 @@ async def index(request: Request, filter: str = "all"):
             "videos": [to_view(r) for r in rows],
             "filters": [(key, text, counts[key]) for key, text, _ in FILTERS],
             "active_filter": selected[0],
-            "known_labels": known_labels(),
             "type_options": TYPE_OPTIONS,
         },
     )
@@ -210,7 +198,6 @@ async def video_detail(request: Request, video_id: str):
             channel_profile_name = channel.get("profile_name")
 
     channel_defaults = {
-        "label": (channel or {}).get("default_label"),
         # The display name, not the raw enum — "Dance Practice", not
         # "dance_practice".
         "type": TYPE_TAGS.get((channel or {}).get("default_type")),
@@ -229,7 +216,6 @@ async def video_detail(request: Request, video_id: str):
             else None,
             "type_options": TYPE_OPTIONS,
             "profile_options": profiles_service.list_profiles(),
-            "known_labels": known_labels(),
         },
     )
 
@@ -248,7 +234,6 @@ async def edit_form(request: Request, video_id: str):
         context={
             "v": to_view(row),
             "type_options": TYPE_OPTIONS,
-            "known_labels": known_labels(),
             "profile_options": profiles_service.list_profiles(),
         },
     )
@@ -261,7 +246,6 @@ async def save_video(
     artist: str = Form(""),
     title: str = Form(""),
     video_type: str = Form("mv"),
-    label: str = Form(""),
     year: str = Form(""),
     version: str = Form(""),
     profile_id: str = Form(""),
@@ -272,7 +256,6 @@ async def save_video(
             artist=artist,
             title=title,
             video_type=video_type,
-            label=label,
             year=int(year) if year.strip().isdigit() else None,
             version=version,
             profile_id=int(profile_id) if profile_id.strip().isdigit() else None,
@@ -394,7 +377,6 @@ async def add_page(request: Request):
 async def add_probe(request: Request, url: str = Form(...)):
     context: dict = {
         "type_options": TYPE_OPTIONS,
-        "known_labels": known_labels(),
         "profile_options": profiles_service.list_profiles(),
     }
     try:
@@ -417,7 +399,6 @@ async def add_submit(
     artist: str = Form(""),
     title: str = Form(""),
     video_type: str = Form("mv"),
-    label: str = Form(""),
     year: str = Form(""),
     channel_id: str = Form(""),
     channel_name: str = Form(""),
@@ -429,7 +410,6 @@ async def add_submit(
         artist=artist.strip() or None,
         title=title.strip() or None,
         video_type=video_type,
-        label=label.strip() or None,
         year=int(year) if year.strip().isdigit() else None,
         duration=int(duration) if duration.strip().isdigit() else None,
         channel_id=channel_id.strip() or None,
