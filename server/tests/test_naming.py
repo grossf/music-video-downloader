@@ -176,3 +176,9 @@ def test_file_names_never_start_with_the_artist_folder_name():
                         video_type=video_type, media_root=ROOT)
         assert p.directory.name == "ILLIT"
         assert not p.media.stem.lower().startswith("illit")
+
+
+def test_poster_sits_next_to_the_thumb():
+    p = build_paths(video_id="abc", artist="A", title="Song", media_root=ROOT)
+    assert p.poster.name == "Song [abc]-poster.jpg"
+    assert p.poster.parent == p.thumb.parent

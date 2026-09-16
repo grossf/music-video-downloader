@@ -280,3 +280,47 @@ def test_relayout_leaves_rows_whose_files_are_elsewhere_alone(db):
     media.unlink()
     assert videos.relayout_library() == 0
     assert videos.get("aaaaaaaaaaa")["file_path"] == str(media)
+
+
+
+# --- primary image for Jellyfin's grids ----------------------------------------
+
+
+def test_placed_videos_get_a_poster_alongside_the_thumb(db):
+    make_done_video(artist="OLD")
+    row = videos.update_metadata("aaaaaaaaaaa", artist="NEW", title="Song")
+    thumb = Path(row["thumb_path"])
+    poster = thumb.with_name(thumb.name.replace("-thumb.jpg", "-poster.jpg"))
+    assert poster.exists() and poster.read_bytes() == thumb.read_bytes()
+
+
+def test_renaming_does_not_leave_the_old_poster_behind(db):
+    make_done_video(artist="OLD")
+    first = videos.update_metadata("aaaaaaaaaaa", artist="OLD", title="Song")
+    old_poster = Path(first["thumb_path"].replace("-thumb.jpg", "-poster.jpg"))
+    assert old_poster.exists()
+
+    videos.update_metadata("aaaaaaaaaaa", artist="OLD", title="Renamed")
+    assert not old_poster.exists()
+
+
+def test_delete_removes_the_poster_too(db):
+    make_done_video(artist="OLD")
+    row = videos.update_metadata("aaaaaaaaaaa", artist="OLD", title="Song")
+    poster = Path(row["thumb_path"].replace("-thumb.jpg", "-poster.jpg"))
+    videos.delete_video("aaaaaaaaaaa", refresh_jellyfin=False)
+    assert not poster.exists()
+    assert not poster.parent.exists()
+
+
+def test_relayout_adds_missing_posters_to_an_otherwise_current_library(db):
+    """Videos placed before posters existed are already at the right path
+    with the right title; the missing poster alone must trigger the update."""
+    make_done_video(artist="ILLIT", title="Song")
+    row = videos.update_metadata("aaaaaaaaaaa", artist="ILLIT", title="Song")
+    poster = Path(row["thumb_path"].replace("-thumb.jpg", "-poster.jpg"))
+    poster.unlink()
+
+    assert videos.relayout_library() == 1
+    assert poster.exists()
+    assert videos.relayout_library() == 0

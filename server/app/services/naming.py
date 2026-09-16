@@ -111,6 +111,28 @@ class LibraryPaths:
     def stem(self) -> str:
         return self.media.stem
 
+    @property
+    def poster(self) -> Path:
+        return poster_for(self.thumb)
+
+
+def poster_for(thumb: Path) -> Path:
+    """The same image under the name Jellyfin reads as the Primary image.
+
+    Jellyfin maps "<name>-thumb.jpg" only to the Thumb image type, which the
+    landscape cards (Recently added) use. Folder and library grids show the
+    Primary image, looked up as "<name>.jpg" or "<name>-poster.jpg". Without
+    both, a video has artwork in one view and a blank card in the other.
+    See PopulatePrimaryImages in
+    jellyfin/MediaBrowser.LocalMetadata/Images/LocalImageProvider.cs.
+    """
+    name = thumb.name
+    if name.endswith("-thumb.jpg"):
+        name = name[: -len("-thumb.jpg")] + "-poster.jpg"
+    else:
+        name = thumb.stem + "-poster" + thumb.suffix
+    return thumb.with_name(name)
+
 
 def build_paths(
     *,
@@ -203,6 +225,13 @@ def place_file(
 
     if source_thumb and source_thumb.exists():
         _move(source_thumb, target.thumb)
+        old_poster = poster_for(source_thumb)
+        if old_poster.exists() and old_poster.resolve() != target.poster.resolve():
+            old_poster.unlink()
+    if target.thumb.exists():
+        # A copy, not a link: hard links do not survive every volume type a
+        # home server might mount, and the image is a few hundred KB.
+        shutil.copyfile(target.thumb, target.poster)
 
     if previous_dir != target.directory:
         prune_empty_dir(previous_dir)

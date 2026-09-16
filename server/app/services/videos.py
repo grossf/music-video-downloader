@@ -11,7 +11,7 @@ from typing import Any
 
 from app.db import default_profile_id, get_conn
 from app.services import jellyfin
-from app.services.naming import build_paths, place_file, prune_empty_dir
+from app.services.naming import build_paths, place_file, poster_for, prune_empty_dir
 from app.services.nfo import nfo_title, read_nfo, write_nfo
 
 log = logging.getLogger(__name__)
@@ -337,12 +337,12 @@ def delete_video(video_id: str, *, refresh_jellyfin: bool = True) -> dict:
             "the download worker"
         )
 
+    paths = [Path(row[key]) for key in ("file_path", "nfo_path", "thumb_path") if row[key]]
+    if row["thumb_path"]:
+        paths.append(poster_for(Path(row["thumb_path"])))
+
     directories = set()
-    for key in ("file_path", "nfo_path", "thumb_path"):
-        raw = row[key]
-        if not raw:
-            continue
-        path = Path(raw)
+    for path in paths:
         directories.add(path.parent)
         try:
             path.unlink(missing_ok=True)
@@ -424,7 +424,14 @@ def relayout_library() -> int:
         nfo = Path(row["nfo_path"]) if row["nfo_path"] else None
         current_title = read_nfo(nfo).get("title") if nfo and nfo.exists() else None
 
-        if media == target.media and current_title == (wanted_title or row["video_id"]):
+        thumb = Path(row["thumb_path"]) if row["thumb_path"] else None
+        poster_missing = bool(thumb and thumb.exists() and not poster_for(thumb).exists())
+
+        if (
+            media == target.media
+            and current_title == (wanted_title or row["video_id"])
+            and not poster_missing
+        ):
             continue
 
         try:
