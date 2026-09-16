@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% from "_icons.html" import refresh, trash, external %}
+{% from "_video_fields.html" import video_fields %}
+
+{% block title %}{{ v.title or v.video_id }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem"><a href="/">&larr; Library</a></div>
+
+<datalist id="known-labels">
+  {% for label in known_labels %}<option value="{{ label }}">{% endfor %}
+</datalist>
+
+<div class="panel" style="display:flex;gap:1.25rem;align-items:flex-start;margin-bottom:1rem">
+  {% if v.thumb_url %}
+    <img src="{{ v.thumb_url }}" alt=""
+         style="width:280px;border-radius:5px;flex:none">
+  {% endif %}
+  <div style="flex:1;min-width:0">
+    <h1 style="margin:0 0 .2rem;font-size:1.3rem">{{ v.title or v.video_id }}</h1>
+    <div class="sub" style="font-size:.95rem">
+      {% if v.artist %}{{ v.artist }}{% else %}<em>no artist</em>{% endif %}
+      {% if v.version %} &middot; {{ v.version }}{% endif %}
+    </div>
+    <div style="margin-top:.7rem;display:flex;gap:.4rem;flex-wrap:wrap">
+      <span class="badge s-{{ v.status }}">{{ v.status }}</span>
+      {% if v.needs_review and v.status != "deleted" %}
+        <span class="badge review">needs review</span>
+      {% endif %}
+      <span class="badge s-queued">{{ v.type_label }}</span>
+    </div>
+    {% if v.error %}
+      <div class="error" style="margin-top:.7rem">{{ v.error }}</div>
+    {% endif %}
+
+    <div class="actions" style="margin-top:1rem;justify-content:flex-start">
+      <a href="https://www.youtube.com/watch?v={{ v.video_id }}" target="_blank"
+         rel="noopener">
+        <button class="icon" type="button"
+                title="Open on YouTube" aria-label="Open on YouTube">{{ external() }}</button>
+      </a>
+      {% if v.status == "done" %}
+        <form method="post" action="/videos/{{ v.video_id }}/redownload"
+              style="display:inline"
+              onsubmit="return confirm('Download again with the current profile? The existing file is replaced; your edits are kept.')">
+          <button class="icon" type="submit"
+                  title="Download again with the current profile"
+                  aria-label="Download again with the current profile">{{ refresh() }}</button>
+        </form>
+      {% endif %}
+      {% if v.status in ("done", "failed", "deleted") %}
+        <form method="post" action="/videos/{{ v.video_id }}/delete"
+              style="display:inline"
+              onsubmit="return confirm('Delete the files? The entry is kept so it is not silently re-downloaded.')">
+          <button class="icon danger" type="submit"
+                  title="Delete files" aria-label="Delete files">{{ trash() }}</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <h2>Download</h2>
+    <dl>
+      <dt>Profile</dt>
+      <dd>
+        {% if v.profile_name %}
+          <a href="/profiles">{{ v.profile_name }}</a>
+          {% if profile %}<div class="sub"><code>{{ profile.selector }}</code></div>{% endif %}
+        {% else %}
+          <span class="sub">profile deleted &mdash; the default is used next time</span>
+        {% endif %}
+      </dd>
+      <dt>Resolution</dt><dd>{{ v.resolution or "—" }}</dd>
+      <dt>Video codec</dt><dd>{{ v.downloaded_vcodec or "—" }}</dd>
+      <dt>Audio codec</dt><dd>{{ v.downloaded_acodec or "—" }}</dd>
+      <dt>Frame rate</dt><dd>{{ v.downloaded_fps or "—" }}</dd>
+      <dt>File size</dt><dd>{{ v.size_label or "—" }}</dd>
+      <dt>Duration</dt><dd>{{ v.duration_label or "—" }}</dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>Source</h2>
+    <dl>
+      <dt>Video ID</dt><dd><code>{{ v.video_id }}</code></dd>
+      <dt>Channel</dt>
+      <dd>
+        {% if channel %}
+          {{ channel.name or channel.channel_id }}
+          <div class="sub">
+            defaults: {{ channel.default_label or "no label" }} /
+            {{ channel.default_type or "no type" }} /
+            {{ channel_profile_name or "no profile" }}
+          </div>
+        {% else %}
+          <span class="sub">—</span>
+        {% endif %}
+      </dd>
+      <dt>Label</dt><dd>{{ v.label or "—" }}</dd>
+      <dt>Year</dt><dd>{{ v.year or "—" }}</dd>
+      <dt>Added via</dt><dd>{{ v.source }}</dd>
+      <dt>Retries</dt><dd>{{ v.retry_count }}</dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>Files</h2>
+    <dl>
+      <dt>Video</dt><dd><code class="path">{{ v.file_path or "—" }}</code></dd>
+      <dt>NFO</dt><dd><code class="path">{{ v.nfo_path or "—" }}</code></dd>
+      <dt>Thumbnail</dt><dd><code class="path">{{ v.thumb_path or "—" }}</code></dd>
+    </dl>
+    <div class="sub" style="margin-top:.6rem">
+      Jellyfin reads the NFO, not the filename — it performs no external
+      metadata lookup for music videos.
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Record</h2>
+    <dl>
+      <dt>Added</dt><dd>{{ v.created_at }}</dd>
+      <dt>Updated</dt><dd>{{ v.updated_at }}</dd>
+    </dl>
+  </section>
+</div>
+
+{% if v.status == "done" %}
+<form class="panel" method="post" action="/videos/{{ v.video_id }}"
+      style="margin-top:1rem">
+  <h2 style="margin-top:0">Edit</h2>
+  {{ video_fields(v, type_options, profile_options, prefix="d") }}
+  <div class="sub" style="margin-top:.7rem">
+    Saving renames the file, rewrites the NFO and refreshes Jellyfin.
+    Changing the profile does not re-download on its own.
+  </div>
+  <div class="actions" style="margin-top:.8rem">
+    <button class="primary" type="submit">Save</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

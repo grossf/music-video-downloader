@@ -52,8 +52,19 @@
     tr:hover td { background: var(--panel); }
     .thumb { width: 88px; height: 50px; object-fit: cover; border-radius: 3px; background: var(--panel-2); display: block; }
     .thumb-empty { width: 88px; height: 50px; border-radius: 3px; background: var(--panel-2); }
-    .title-cell strong { font-weight: 600; }
+    .title-cell { font-weight: 600; }
+    .title-link { color: var(--text); }
+    .title-link:hover { color: var(--accent); }
     .sub { color: var(--muted); font-size: 0.8rem; }
+
+    /* Icon-only buttons. Every one carries an aria-label — the svg is
+       aria-hidden, so without it the button has no accessible name. */
+    button.icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0; color: var(--muted);
+    }
+    button.icon:hover { color: var(--text); border-color: var(--accent); }
+    button.icon.danger:hover { color: var(--err); border-color: var(--err); }
 
     .badge {
       display: inline-block; padding: 0.12rem 0.5rem; border-radius: 3px;
@@ -82,6 +93,25 @@
     .field label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.04em; }
     .field input, .field select { width: 100%; }
     .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; }
+    .detail-grid {
+      display: grid; gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+    .detail-grid h2 {
+      margin: 0 0 .7rem; font-size: .75rem; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); font-weight: 600;
+    }
+    .detail-grid dl {
+      margin: 0; display: grid; grid-template-columns: 110px 1fr;
+      gap: .4rem .8rem; align-items: baseline;
+    }
+    .detail-grid dt {
+      color: var(--muted); font-size: .78rem; text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .detail-grid dd { margin: 0; overflow-wrap: anywhere; }
+    code { font-size: .82rem; color: var(--text); }
+    code.path { color: var(--muted); font-size: .76rem; }
     .empty { color: var(--muted); padding: 3rem 1rem; text-align: center; }
     .error { color: var(--err); font-size: 0.85rem; }
     .htmx-request { opacity: 0.5; }

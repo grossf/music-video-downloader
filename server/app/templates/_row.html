@@ -1,3 +1,4 @@
+{% from "_icons.html" import pencil, refresh, trash %}
 {#
   A queued or downloading row refreshes itself. Without this the library page
   is static: a row added before its download finished keeps showing an empty
@@ -12,61 +13,74 @@
       hx-swap="outerHTML"
     {% endif %}>
   <td>
-    {% if v.thumb_url %}
-      <img class="thumb" src="{{ v.thumb_url }}" alt="">
-    {% else %}
-      <div class="thumb-empty"></div>
-    {% endif %}
+    <a href="/videos/{{ v.video_id }}">
+      {% if v.thumb_url %}
+        <img class="thumb" src="{{ v.thumb_url }}" alt="">
+      {% else %}
+        <div class="thumb-empty"></div>
+      {% endif %}
+    </a>
   </td>
+
   <td class="title-cell">
-    <strong>{{ v.title or v.video_id }}</strong>
+    <a href="/videos/{{ v.video_id }}" class="title-link">
+      {{ v.title or v.video_id }}
+    </a>
     {% if v.version %}<span class="sub">({{ v.version }})</span>{% endif %}
-    <div class="sub">
-      {% if v.artist %}{{ v.artist }}{% else %}<em>no artist</em>{% endif %}
-      &middot;
-      <a href="https://www.youtube.com/watch?v={{ v.video_id }}" target="_blank"
-         rel="noopener">{{ v.video_id }}</a>
-    </div>
   </td>
-  <td class="sub">{{ v.type_label }}</td>
-  <td class="sub">{{ v.label or "—" }}</td>
+
   <td>
-    <span class="badge s-{{ v.status }}">{{ v.status }}</span>
-    {% if v.needs_review and v.status != "deleted" %}
-      <span class="badge review" title="Extraction was not confident">review</span>
-    {% endif %}
-    {% if v.error %}<div class="error" title="{{ v.error }}">{{ v.error[:60] }}</div>{% endif %}
-  </td>
-  <td class="sub">
-    {% if v.profile_name %}
-      {{ v.profile_name }}
+    {% if v.artist %}
+      {{ v.artist }}
     {% else %}
-      <span title="This video's profile was deleted; it will use the default next time.">—</span>
+      {# The absent artist IS the review signal — the extraction rules leave it
+         empty rather than guessing the channel, which is the label. #}
+      <span class="sub"><em>no artist</em></span>
     {% endif %}
   </td>
-  <td class="sub">{{ v.quality }}</td>
+
+  <td class="sub">{{ v.type_label }}</td>
+
+  {#
+    Resolution and status are mutually exclusive: a video still downloading has
+    no resolution yet. Sharing one column keeps a table of finished rows quiet
+    while leaving a failure impossible to miss.
+  #}
+  <td class="sub">
+    {% if v.status == "done" %}
+      {{ v.resolution or "—" }}
+    {% elif v.status == "failed" %}
+      <span class="badge s-failed" title="{{ v.error }}">failed</span>
+    {% else %}
+      <span class="badge s-{{ v.status }}">{{ v.status }}</span>
+    {% endif %}
+  </td>
+
+  <td class="sub">{{ v.size_label or "—" }}</td>
+
   <td>
     <div class="actions">
       {% if v.status == "done" %}
-        <button hx-get="/videos/{{ v.video_id }}/edit"
+        <button class="icon"
+                title="Edit metadata" aria-label="Edit metadata"
+                hx-get="/videos/{{ v.video_id }}/edit"
                 hx-target="#video-{{ v.video_id }}"
-                hx-swap="outerHTML">Edit</button>
-        <button hx-post="/videos/{{ v.video_id }}/redownload"
+                hx-swap="outerHTML">{{ pencil() }}</button>
+        <button class="icon"
+                title="Download again with the current profile"
+                aria-label="Download again with the current profile"
+                hx-post="/videos/{{ v.video_id }}/redownload"
                 hx-target="#video-{{ v.video_id }}"
                 hx-swap="outerHTML"
-                title="Fetch again using the current default profile. Your metadata is kept."
-                hx-confirm="Download &quot;{{ v.title or v.video_id }}&quot; again with the current profile? The existing file is replaced; your artist/title edits are kept.">
-          Redownload
-        </button>
+                hx-confirm="Download &quot;{{ v.title or v.video_id }}&quot; again with the current profile? The existing file is replaced; your artist/title edits are kept.">{{ refresh() }}</button>
       {% endif %}
       {% if v.status in ("done", "failed", "deleted") %}
-        <button class="danger"
+        <button class="icon danger"
+                title="Delete files" aria-label="Delete files"
                 hx-post="/videos/{{ v.video_id }}/delete"
                 hx-target="#video-{{ v.video_id }}"
                 hx-swap="outerHTML"
-                hx-confirm="Delete the files for &quot;{{ v.title or v.video_id }}&quot;? The entry is kept so it is not silently re-downloaded.">
-          Delete
-        </button>
+                hx-confirm="Delete the files for &quot;{{ v.title or v.video_id }}&quot;? The entry is kept so it is not silently re-downloaded.">{{ trash() }}</button>
       {% endif %}
     </div>
   </td>

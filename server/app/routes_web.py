@@ -53,6 +53,41 @@ def _thumb_url(row: dict) -> str | None:
     return "/media/" + quote(relative.as_posix())
 
 
+def _resolution(row: dict) -> str | None:
+    """2160p60 — frame rate appended only when it is worth knowing."""
+    height = row.get("downloaded_height")
+    if not height:
+        return None
+    fps = row.get("downloaded_fps")
+    return f"{height}p{int(fps)}" if fps and fps >= 50 else f"{height}p"
+
+
+def _size(row: dict) -> str | None:
+    size = row.get("filesize")
+    if not size:
+        return None
+    megabytes = size / 1_048_576
+    if megabytes >= 1024:
+        return f"{megabytes / 1024:.1f} GB"
+    return f"{megabytes:.0f} MB"
+
+
+def _duration(row: dict) -> str | None:
+    seconds = row.get("duration")
+    if not seconds:
+        return None
+    minutes, remainder = divmod(int(seconds), 60)
+    if minutes >= 60:
+        hours, minutes = divmod(minutes, 60)
+        return f"{hours}:{minutes:02d}:{remainder:02d}"
+    return f"{minutes}:{remainder:02d}"
+
+
+def _codec(row: dict) -> str | None:
+    """av01.0.01M.08 -> av01"""
+    return (row.get("downloaded_vcodec") or "").split(".")[0] or None
+
+
 def _quality(row: dict) -> str:
     height = row.get("downloaded_height")
     if not height:
@@ -73,6 +108,10 @@ def to_view(row: dict) -> dict:
     return row | {
         "thumb_url": _thumb_url(row),
         "quality": _quality(row),
+        "resolution": _resolution(row),
+        "size_label": _size(row),
+        "codec": _codec(row),
+        "duration_label": _duration(row),
         "type_label": TYPE_TAGS.get(row.get("type"), row.get("type") or "—"),
     }
 
@@ -135,6 +174,58 @@ async def index(request: Request, filter: str = "all"):
     )
 
 
+def _settle(request: Request, video_id: str):
+    """HTMX wants the swapped row back; a plain form post wants a redirect.
+
+    The same routes serve the library (inline, HTMX) and the detail page
+    (ordinary forms), so they branch on the header HTMX sets.
+    """
+    if request.headers.get("HX-Request"):
+        return _row_response(request, video_id)
+    return RedirectResponse(f"/videos/{video_id}", status_code=303)
+
+
+@router.get("/videos/{video_id}", response_class=HTMLResponse)
+async def video_detail(request: Request, video_id: str):
+    row = videos.get(video_id)
+    if row is None:
+        return HTMLResponse(
+            '<p style="font:15px system-ui;padding:2rem">Unknown video. '
+            '<a href="/">Back to the library</a></p>',
+            status_code=404,
+        )
+
+    channel = None
+    channel_profile_name = None
+    if row["channel_id"]:
+        with get_conn() as conn:
+            found = conn.execute(
+                "SELECT c.*, p.name AS profile_name FROM channels c"
+                " LEFT JOIN profiles p ON p.id = c.default_profile_id"
+                " WHERE c.channel_id = ?",
+                (row["channel_id"],),
+            ).fetchone()
+        if found:
+            channel = dict(found)
+            channel_profile_name = channel.get("profile_name")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="detail.html",
+        context={
+            "v": to_view(row),
+            "channel": channel,
+            "channel_profile_name": channel_profile_name,
+            "profile": profiles_service.get_profile(row["profile_id"])
+            if row["profile_id"]
+            else None,
+            "type_options": TYPE_OPTIONS,
+            "profile_options": profiles_service.list_profiles(),
+            "known_labels": known_labels(),
+        },
+    )
+
+
 @router.get("/videos/{video_id}/row", response_class=HTMLResponse)
 async def video_row(request: Request, video_id: str):
     return _row_response(request, video_id)
@@ -180,7 +271,7 @@ async def save_video(
         )
     except (videos.NotFound, videos.NotEditable) as exc:
         log.warning("edit refused for %s: %s", video_id, exc)
-    return _row_response(request, video_id)
+    return _settle(request, video_id)
 
 
 @router.post("/videos/{video_id}/delete", response_class=HTMLResponse)
@@ -189,7 +280,7 @@ async def delete_video(request: Request, video_id: str):
         videos.delete_video(video_id)
     except (videos.NotFound, videos.NotEditable) as exc:
         log.warning("delete refused for %s: %s", video_id, exc)
-    return _row_response(request, video_id)
+    return _settle(request, video_id)
 
 
 @router.post("/videos/{video_id}/redownload", response_class=HTMLResponse)
@@ -199,7 +290,7 @@ async def redownload_video(request: Request, video_id: str):
         videos.requeue(video_id)
     except (videos.NotFound, videos.NotEditable) as exc:
         log.warning("redownload refused for %s: %s", video_id, exc)
-    return _row_response(request, video_id)
+    return _settle(request, video_id)
 
 
 def _profiles_page(request: Request, editing: dict | None = None, error: str | None = None):

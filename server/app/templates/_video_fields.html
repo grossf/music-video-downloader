@@ -1,0 +1,51 @@
+{#
+  The editable fields for one video, shared by the inline row form and the
+  detail page. Defined once so the two cannot drift apart.
+  `prefix` keeps element ids unique when several forms share a page.
+#}
+{% macro video_fields(v, type_options, profile_options, prefix="f") %}
+<div class="form-grid">
+  <div class="field">
+    <label for="{{ prefix }}-artist">Artist</label>
+    <input id="{{ prefix }}-artist" name="artist" value="{{ v.artist or '' }}"
+           placeholder="leave empty to keep for review">
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-title">Title</label>
+    <input id="{{ prefix }}-title" name="title" value="{{ v.title or '' }}">
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-type">Type</label>
+    <select id="{{ prefix }}-type" name="video_type">
+      {% for key, text in type_options %}
+        <option value="{{ key }}" {% if key == v.type %}selected{% endif %}>{{ text }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-label">Label / Studio</label>
+    <input id="{{ prefix }}-label" name="label" value="{{ v.label or '' }}"
+           list="known-labels">
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-year">Year</label>
+    <input id="{{ prefix }}-year" name="year" value="{{ v.year or '' }}"
+           inputmode="numeric">
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-version">Version</label>
+    <input id="{{ prefix }}-version" name="version" value="{{ v.version or '' }}"
+           placeholder="auto from type">
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-profile">Profile</label>
+    <select id="{{ prefix }}-profile" name="profile_id">
+      {% for p in profile_options %}
+        <option value="{{ p.id }}" {% if p.id == v.profile_id %}selected{% endif %}>
+          {{ p.name }}{% if p.is_default %} (default){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+{% endmacro %}
