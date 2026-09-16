@@ -13,6 +13,9 @@ services:
       JELLYFIN_URL: ${JELLYFIN_URL:-}
       JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PUID: ${PUID:-}
+      PGID: ${PGID:-}
+      YTDLP_AUTO_UPDATE: ${YTDLP_AUTO_UPDATE:-true}
     volumes:
       # Must be the same host path the Jellyfin container mounts as its
       # "Music Videos" library.

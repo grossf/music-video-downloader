@@ -35,6 +35,13 @@
         <button class="icon" type="button"
                 title="Open on YouTube" aria-label="Open on YouTube">{{ external() }}</button>
       </a>
+      {% if v.status == "failed" %}
+        <form method="post" action="/videos/{{ v.video_id }}/redownload"
+              style="display:inline">
+          <button class="icon" type="submit"
+                  title="Retry download" aria-label="Retry download">{{ refresh() }}</button>
+        </form>
+      {% endif %}
       {% if v.status == "done" %}
         <form method="post" action="/videos/{{ v.video_id }}/redownload"
               style="display:inline"

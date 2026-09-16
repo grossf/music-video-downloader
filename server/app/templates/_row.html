@@ -77,6 +77,13 @@
                 hx-swap="outerHTML"
                 hx-confirm="Download &quot;{{ v.title or v.video_id }}&quot; again with the current profile? The existing file is replaced; your artist/title edits are kept.">{{ refresh() }}</button>
       {% endif %}
+      {% if v.status == "failed" %}
+        <button class="icon"
+                title="Retry download" aria-label="Retry download"
+                hx-post="/videos/{{ v.video_id }}/redownload"
+                hx-target="#video-{{ v.video_id }}"
+                hx-swap="outerHTML">{{ refresh() }}</button>
+      {% endif %}
       {% if v.status in ("done", "failed", "deleted") %}
         <button class="icon danger"
                 title="Delete files" aria-label="Delete files"

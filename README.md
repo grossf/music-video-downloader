@@ -67,6 +67,22 @@ Set `JELLYFIN_URL` and `JELLYFIN_API_KEY` to have the app trigger a library
 refresh after each download and each metadata edit. Leave them empty and that
 step is skipped silently.
 
+**File ownership.** Set `PUID` and `PGID` (from `id` on the server) and the
+app creates files as that user rather than root. When switching an existing
+library over, hand it to that user once:
+`sudo chown -R 1000:1000 /srv/media/music-videos`. The container only takes
+over the data directory itself, never the media library.
+
+**yt-dlp updates.** YouTube breaks old yt-dlp versions regularly. The
+container updates yt-dlp on every start (`YTDLP_AUTO_UPDATE=true`), so when
+downloads start failing, `docker compose restart` and **Retry** on the failed
+videos is the fix. Without internet at startup it carries on with the version
+it has.
+
+**Web UI safety.** The web UI has no login, so it refuses form posts that come
+from another site; otherwise any page open in your browser could delete videos
+in the background. `/api` is exempt, being protected by the token.
+
 ## Installing the addon
 
 During development, load it temporarily — no signing needed:

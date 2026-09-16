@@ -302,3 +302,15 @@ def test_search_icon_renders_as_svg_not_escaped_text():
         type_options=TYPE_OPTIONS, request=None,
     )
     assert "<circle" in html and "&lt;circle" not in html
+
+
+def test_failed_row_offers_a_retry():
+    html = render_row(status="failed", error="boom")
+    assert "/videos/aaaaaaaaaaa/redownload" in html
+    assert "Retry download" in html
+
+
+def test_page_does_not_load_scripts_from_a_cdn():
+    html = templates.get_template("base.html").render(request=None)
+    assert "unpkg.com" not in html
+    assert "/static/htmx.min.js" in html
