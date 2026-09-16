@@ -32,3 +32,7 @@
 {% macro external() %}
   {{ _svg('<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>'|safe) }}
 {% endmacro %}
+
+{% macro search() -%}
+{{ _svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'|safe) }}
+{%- endmacro %}

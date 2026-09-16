@@ -15,7 +15,10 @@
   <td>
     <a href="/videos/{{ v.video_id }}">
       {% if v.thumb_url %}
-        <img class="thumb" src="{{ v.thumb_url }}" alt="">
+        {# Lazy: only rows scrolled into view fetch their thumbnail. The fixed
+           size keeps rows from jumping as images arrive. #}
+        <img class="thumb" src="{{ v.thumb_url }}" alt="" width="88" height="50"
+             loading="lazy" decoding="async">
       {% else %}
         <div class="thumb-empty"></div>
       {% endif %}

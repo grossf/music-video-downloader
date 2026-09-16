@@ -257,6 +257,8 @@ def test_filter_tabs_keep_the_search():
 
     assert _library_href("failed", "ive", "IVE") == "/?filter=failed&q=ive&artist=IVE"
     assert _library_href("all") == "/"
+    assert _library_href("all", page=3) == "/?page=3"
+    assert _library_href("all", page=1) == "/"
 
 
 def test_empty_search_offers_to_clear_it():
@@ -266,3 +268,37 @@ def test_empty_search_offers_to_clear_it():
         type_options=TYPE_OPTIONS, request=None,
     )
     assert "No videos match your search" in html and "Clear search" in html
+
+
+def test_thumbnails_load_lazily_with_a_fixed_size():
+    from app.config import settings
+
+    html = render_row(thumb_path=str(settings.media_root / "A" / "t.jpg"))
+    assert 'loading="lazy"' in html
+    assert 'width="88"' in html and 'height="50"' in html
+
+
+@pytest.mark.parametrize(
+    "page, pages, expected",
+    [
+        (1, 1, [1]),
+        (1, 3, [1, 2, 3]),
+        (1, 20, [1, 2, None, 20]),
+        (5, 20, [1, None, 4, 5, 6, None, 20]),
+        (3, 20, [1, 2, 3, 4, None, 20]),  # a one-page gap shows the page
+        (20, 20, [1, None, 19, 20]),
+    ],
+)
+def test_page_numbers(page, pages, expected):
+    from app.routes_web import _page_numbers
+
+    assert _page_numbers(page, pages) == expected
+
+
+def test_search_icon_renders_as_svg_not_escaped_text():
+    html = templates.get_template("list.html").render(
+        videos=[], filters=[], active_filter="all", active_filter_label="All",
+        q="", artist="", clear_search_href="/", clear_artist_href="/",
+        type_options=TYPE_OPTIONS, request=None,
+    )
+    assert "<circle" in html and "&lt;circle" not in html

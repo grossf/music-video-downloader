@@ -207,3 +207,19 @@ def test_filter_counts_follow_the_search(db):
     assert _counts(q="ive")["all"] == 2
     assert _counts(artist="ILLIT")["all"] == 1
     assert _counts()["all"] == 3
+
+
+# --- paging -----------------------------------------------------------------
+
+
+def test_pages_cover_every_video_exactly_once(db):
+    """Rows enqueued in the same second share created_at; without a tiebreak
+    the order between them is undefined and pages can overlap."""
+    ids = [f"{i:011d}" for i in range(7)]
+    for vid in ids:
+        videos.enqueue(video_id=vid, title=vid)
+    seen = []
+    for offset in range(0, 7, 3):
+        seen += [v["video_id"] for v in videos.list_videos(limit=3, offset=offset)]
+    assert sorted(seen) == sorted(ids)
+    assert len(seen) == len(set(seen))

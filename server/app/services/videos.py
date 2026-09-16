@@ -86,6 +86,7 @@ def list_videos(
     q: str | None = None,
     artist: str | None = None,
     limit: int = 500,
+    offset: int = 0,
 ) -> list[dict]:
     clauses, params = search_clauses(q, artist)
     if status:
@@ -100,10 +101,14 @@ def list_videos(
         clauses.append("v.needs_review = ?")
         params.append(1 if needs_review else 0)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-    params.append(limit)
+    params.extend([limit, offset])
     with get_conn() as conn:
+        # video_id breaks ties so rows added in the same second keep a stable
+        # order — otherwise one could show on two pages, or on neither.
         rows = conn.execute(
-            f"{VIDEO_SELECT} {where} ORDER BY v.created_at DESC LIMIT ?", params
+            f"{VIDEO_SELECT} {where} ORDER BY v.created_at DESC, v.video_id"
+            " LIMIT ? OFFSET ?",
+            params,
         ).fetchall()
     return [dict(r) for r in rows]
 

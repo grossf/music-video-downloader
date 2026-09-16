@@ -34,6 +34,10 @@ CODEC_OPTIONS = [
     ("h264", "H.264 — plays everywhere, capped at 1080p on YouTube"),
 ]
 
+# One or two screens of rows. Big enough that most searches fit on one page,
+# small enough that a page never loads hundreds of thumbnails.
+PAGE_SIZE = 50
+
 FILTERS = [
     ("all", "All", {}),
     ("review", "Needs review", {"needs_review": True}),
@@ -154,26 +158,68 @@ def _row_response(request: Request, video_id: str) -> HTMLResponse:
     )
 
 
-def _library_href(filter: str = "all", q: str = "", artist: str = "") -> str:
-    params = {"filter": filter if filter != "all" else "", "q": q, "artist": artist}
+def _library_href(
+    filter: str = "all", q: str = "", artist: str = "", page: int = 1
+) -> str:
+    params = {
+        "filter": filter if filter != "all" else "",
+        "q": q,
+        "artist": artist,
+        "page": page if page > 1 else "",
+    }
     params = {k: v for k, v in params.items() if v}
     return "/?" + urlencode(params) if params else "/"
 
 
+def _page_numbers(page: int, pages: int) -> list[int | None]:
+    """1 … 4 5 6 … 20 — the first, the last and the neighbours of the current
+    page, with None marking a gap. A gap of exactly one page shows that page
+    instead, since "…" would take the same space and say less."""
+    wanted = {1, pages, page - 1, page, page + 1}
+    shown = sorted(n for n in wanted if 1 <= n <= pages)
+    out: list[int | None] = []
+    for n in shown:
+        if out and n - out[-1] == 2:
+            out.append(n - 1)
+        elif out and n - out[-1] > 2:
+            out.append(None)
+        out.append(n)
+    return out
+
+
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request, filter: str = "all", q: str = "", artist: str = ""):
+async def index(
+    request: Request,
+    filter: str = "all",
+    q: str = "",
+    artist: str = "",
+    page: str = "1",
+):
     q, artist = q.strip(), artist.strip()
     selected = next((f for f in FILTERS if f[0] == filter), FILTERS[0])
-    rows = videos.list_videos(**selected[2], q=q, artist=artist)
     counts = _counts(q, artist)
+
+    total = counts[selected[0]]
+    pages = max(1, -(-total // PAGE_SIZE))
+    # A stale link (say page 5 after deleting half the library) lands on the
+    # last page rather than an empty one.
+    page_no = min(max(1, int(page) if page.isdigit() else 1), pages)
+    rows = videos.list_videos(
+        **selected[2], q=q, artist=artist,
+        limit=PAGE_SIZE, offset=(page_no - 1) * PAGE_SIZE,
+    )
     return templates.TemplateResponse(
         request=request,
         name="list.html",
         context={
             "videos": [to_view(r) for r in rows],
+            # A tab with nothing in it is hidden, unless it is All or the one
+            # being viewed. Failures and videos needing review thus appear
+            # only when there is something to look at.
             "filters": [
                 (key, text, counts[key], _library_href(key, q, artist))
                 for key, text, _ in FILTERS
+                if key in ("all", selected[0]) or counts[key]
             ],
             "active_filter": selected[0],
             "q": q,
@@ -181,6 +227,19 @@ async def index(request: Request, filter: str = "all", q: str = "", artist: str 
             # Removing the artist chip keeps the tab and the typed search.
             "clear_artist_href": _library_href(selected[0], q),
             "clear_search_href": _library_href(selected[0]),
+            "page": page_no,
+            "pages": pages,
+            "total": total,
+            "first_shown": (page_no - 1) * PAGE_SIZE + 1 if total else 0,
+            "last_shown": min(page_no * PAGE_SIZE, total),
+            "page_links": [
+                (n, _library_href(selected[0], q, artist, n) if n else None)
+                for n in _page_numbers(page_no, pages)
+            ],
+            "prev_href": _library_href(selected[0], q, artist, page_no - 1)
+            if page_no > 1 else None,
+            "next_href": _library_href(selected[0], q, artist, page_no + 1)
+            if page_no < pages else None,
             "active_filter_label": selected[1],
             "type_options": TYPE_OPTIONS,
         },

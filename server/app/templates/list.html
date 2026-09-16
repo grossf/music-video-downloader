@@ -1,32 +1,38 @@
 {% extends "base.html" %}
+{% from "_icons.html" import search %}
 
 {% block content %}
-{# The search box sits outside #library so typing never loses focus: each
-   keystroke swaps only the tabs and the table below it. #}
-<form class="search" method="get" action="/" role="search"
-      hx-get="/" hx-trigger="input changed delay:250ms, search"
-      hx-target="#library" hx-select="#library" hx-swap="outerHTML"
-      hx-push-url="true">
-  <input type="search" name="q" value="{{ q }}" placeholder="Search title or artist"
-         aria-label="Search title or artist" autocomplete="off">
-  {% if active_filter != "all" %}<input type="hidden" name="filter" value="{{ active_filter }}">{% endif %}
-  {% if artist %}<input type="hidden" name="artist" value="{{ artist }}">{% endif %}
-</form>
+<div class="toolbar">
+  {# The search form sits outside #library so typing never loses focus. Each
+     keystroke swaps #library and, out of band, the tab counts beside it. #}
+  <form class="search" method="get" action="/" role="search"
+        hx-get="/" hx-trigger="input changed delay:250ms, search"
+        hx-target="#library" hx-select="#library" hx-swap="outerHTML"
+        hx-select-oob="#tabs" hx-push-url="true">
+    {% if artist %}
+      <a class="chip" href="{{ clear_artist_href }}" title="Show all artists">
+        {{ artist }} <span aria-hidden="true">&times;</span>
+      </a>
+      <input type="hidden" name="artist" value="{{ artist }}">
+    {% endif %}
+    <label class="search-box">
+      {{ search() }}
+      <input type="search" name="q" value="{{ q }}" placeholder="Search title or artist"
+             aria-label="Search title or artist" autocomplete="off">
+    </label>
+    {% if active_filter != "all" %}<input type="hidden" name="filter" value="{{ active_filter }}">{% endif %}
+  </form>
 
-<div id="library">
-<div class="filters">
-  {% for key, text, count, href in filters %}
-    <a href="{{ href }}" class="{{ 'active' if key == active_filter else '' }}">
-      {{ text }} ({{ count }})
-    </a>
-  {% endfor %}
-  {% if artist %}
-    <a class="chip" href="{{ clear_artist_href }}" title="Show all artists">
-      Artist: {{ artist }} &times;
-    </a>
-  {% endif %}
+  <nav id="tabs" class="tabs" aria-label="Filter by status">
+    {% for key, text, count, href in filters %}
+      <a href="{{ href }}" {% if key == active_filter %}class="active" aria-current="page"{% endif %}>
+        {{ text }}<span class="count">{{ count }}</span>
+      </a>
+    {% endfor %}
+  </nav>
 </div>
 
+<div id="library">
 {% if videos %}
 <table>
   <thead>
@@ -44,6 +50,23 @@
     {% for v in videos %}{% include "_row.html" %}{% endfor %}
   </tbody>
 </table>
+
+{% if pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  <span class="sub">{{ first_shown }}&ndash;{{ last_shown }} of {{ total }}</span>
+  <div class="pages">
+    {% if prev_href %}<a href="{{ prev_href }}" aria-label="Previous page">&lsaquo;</a>
+    {% else %}<span class="disabled" aria-hidden="true">&lsaquo;</span>{% endif %}
+    {% for n, href in page_links %}
+      {% if n is none %}<span class="gap">&hellip;</span>
+      {% elif n == page %}<span class="current" aria-current="page">{{ n }}</span>
+      {% else %}<a href="{{ href }}">{{ n }}</a>{% endif %}
+    {% endfor %}
+    {% if next_href %}<a href="{{ next_href }}" aria-label="Next page">&rsaquo;</a>
+    {% else %}<span class="disabled" aria-hidden="true">&rsaquo;</span>{% endif %}
+  </div>
+</nav>
+{% endif %}
 {% else %}
 <div class="empty">
   {% if q or artist %}
