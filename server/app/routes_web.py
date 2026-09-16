@@ -150,6 +150,7 @@ async def edit_form(request: Request, video_id: str):
             "v": to_view(row),
             "type_options": TYPE_OPTIONS,
             "known_labels": known_labels(),
+            "profile_options": profiles_service.list_profiles(),
         },
     )
 
@@ -164,6 +165,7 @@ async def save_video(
     label: str = Form(""),
     year: str = Form(""),
     version: str = Form(""),
+    profile_id: str = Form(""),
 ):
     try:
         videos.update_metadata(
@@ -174,6 +176,7 @@ async def save_video(
             label=label,
             year=int(year) if year.strip().isdigit() else None,
             version=version,
+            profile_id=int(profile_id) if profile_id.strip().isdigit() else None,
         )
     except (videos.NotFound, videos.NotEditable) as exc:
         log.warning("edit refused for %s: %s", video_id, exc)

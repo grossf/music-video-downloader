@@ -26,6 +26,14 @@ class NotEditable(Exception):
 
 NOW = "datetime('now')"
 
+# Every read joins the profile so callers can show which download template a
+# video used. LEFT JOIN, not INNER: a video whose profile was deleted must
+# still be listed rather than vanishing from the library.
+VIDEO_SELECT = (
+    "SELECT v.*, p.name AS profile_name FROM videos v"
+    " LEFT JOIN profiles p ON p.id = v.profile_id"
+)
+
 
 def _row_to_dict(row) -> dict | None:
     return dict(row) if row is not None else None
@@ -34,7 +42,7 @@ def _row_to_dict(row) -> dict | None:
 def get(video_id: str) -> dict | None:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT * FROM videos WHERE video_id = ?", (video_id,)
+            f"{VIDEO_SELECT} WHERE v.video_id = ?", (video_id,)
         ).fetchone()
     return _row_to_dict(row)
 
@@ -45,7 +53,7 @@ def get_many(video_ids: list[str]) -> dict[str, dict]:
     placeholders = ", ".join("?" for _ in video_ids)
     with get_conn() as conn:
         rows = conn.execute(
-            f"SELECT * FROM videos WHERE video_id IN ({placeholders})", video_ids
+            f"{VIDEO_SELECT} WHERE v.video_id IN ({placeholders})", video_ids
         ).fetchall()
     return {row["video_id"]: dict(row) for row in rows}
 
@@ -55,16 +63,16 @@ def list_videos(
 ) -> list[dict]:
     clauses, params = [], []
     if status:
-        clauses.append("status = ?")
+        clauses.append("v.status = ?")
         params.append(status)
     if needs_review is not None:
-        clauses.append("needs_review = ?")
+        clauses.append("v.needs_review = ?")
         params.append(1 if needs_review else 0)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     params.append(limit)
     with get_conn() as conn:
         rows = conn.execute(
-            f"SELECT * FROM videos {where} ORDER BY created_at DESC LIMIT ?", params
+            f"{VIDEO_SELECT} {where} ORDER BY v.created_at DESC LIMIT ?", params
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -224,6 +232,7 @@ def update_metadata(
     label: str | None = None,
     year: int | None = None,
     version: str | None = None,
+    profile_id: int | None = None,
     refresh_jellyfin: bool = True,
 ) -> dict:
     """Correct a video's metadata, then make the library match.
@@ -301,6 +310,9 @@ def update_metadata(
         "thumb_path": str(placed.thumb) if placed.thumb.exists() else None,
         # An artist is the thing review exists to supply; having one clears it.
         "needs_review": 0 if artist else 1,
+        # Changing the profile does not re-download on its own — it takes
+        # effect the next time this video is fetched.
+        "profile_id": profile_id or row["profile_id"],
         "video_id": video_id,
     }
     assignments = ", ".join(f"{k} = :{k}" for k in fields if k != "video_id")

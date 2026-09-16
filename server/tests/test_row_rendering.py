@@ -24,6 +24,8 @@ def render_row(**overrides) -> str:
         "downloaded_vcodec": "vp9",
         "downloaded_fps": 60.0,
         "filesize": 500 * 1024 * 1024,
+        "profile_id": 1,
+        "profile_name": "4K Best",
     }
     row.update(overrides)
     template = templates.get_template("_row.html")
@@ -69,3 +71,15 @@ def test_missing_artist_is_shown_as_such():
 
 def test_failed_row_surfaces_its_error():
     assert "boom" in render_row(status="failed", error="boom")
+
+
+def test_row_shows_which_profile_the_video_used():
+    assert "4K Best" in render_row()
+
+
+def test_row_survives_a_deleted_profile():
+    """A video whose profile was removed must still render — the LEFT JOIN
+    leaves profile_name NULL rather than dropping the row."""
+    html = render_row(profile_id=None, profile_name=None)
+    assert "video-aaaaaaaaaaa" in html
+    assert "4K Best" not in html

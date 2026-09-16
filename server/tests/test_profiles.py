@@ -125,3 +125,41 @@ def test_requeue_is_refused_while_in_flight(db):
 def test_requeue_unknown_video_raises(db):
     with pytest.raises(videos.NotFound):
         videos.requeue("zzzzzzzzzzz")
+
+
+def test_listed_videos_carry_their_profile_name(db):
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A")
+    listed = videos.list_videos()
+    assert listed[0]["profile_name"] == "4K Best"
+    assert videos.get("aaaaaaaaaaa")["profile_name"] == "4K Best"
+
+
+def test_video_still_listed_after_its_profile_is_deleted(db):
+    created = profiles.create_profile(name="Temp", max_height=720)
+    videos.enqueue(video_id="aaaaaaaaaaa", title="A", profile_id=created["id"])
+    profiles.delete_profile(created["id"])
+
+    listed = videos.list_videos()
+    assert len(listed) == 1, "the video must not vanish with its profile"
+    assert listed[0]["profile_name"] == "4K Best"
+
+
+def test_edit_can_change_a_videos_profile(db):
+    created = profiles.create_profile(name="1080p", max_height=1080)
+    videos.enqueue(video_id="aaaaaaaaaaa", artist="A", title="Song")
+    videos.mark_done("aaaaaaaaaaa", file_path=None)
+
+    updated = videos.update_metadata(
+        "aaaaaaaaaaa", artist="A", title="Song", profile_id=created["id"]
+    )
+    assert updated["profile_id"] == created["id"]
+    assert updated["profile_name"] == "1080p"
+
+
+def test_edit_without_a_profile_keeps_the_existing_one(db):
+    videos.enqueue(video_id="aaaaaaaaaaa", artist="A", title="Song")
+    videos.mark_done("aaaaaaaaaaa", file_path=None)
+    before = videos.get("aaaaaaaaaaa")["profile_id"]
+
+    updated = videos.update_metadata("aaaaaaaaaaa", artist="A", title="Song")
+    assert updated["profile_id"] == before

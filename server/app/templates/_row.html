@@ -37,6 +37,13 @@
     {% endif %}
     {% if v.error %}<div class="error" title="{{ v.error }}">{{ v.error[:60] }}</div>{% endif %}
   </td>
+  <td class="sub">
+    {% if v.profile_name %}
+      {{ v.profile_name }}
+    {% else %}
+      <span title="This video's profile was deleted; it will use the default next time.">—</span>
+    {% endif %}
+  </td>
   <td class="sub">{{ v.quality }}</td>
   <td>
     <div class="actions">

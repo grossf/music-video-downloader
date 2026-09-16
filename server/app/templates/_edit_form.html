@@ -1,5 +1,5 @@
 <tr id="video-{{ v.video_id }}">
-  <td colspan="7">
+  <td colspan="8">
     <form class="panel"
           hx-post="/videos/{{ v.video_id }}"
           hx-target="#video-{{ v.video_id }}"
@@ -37,9 +37,21 @@
           <input id="version-{{ v.video_id }}" name="version" value="{{ v.version or '' }}"
                  placeholder="auto from type">
         </div>
+        <div class="field">
+          <label for="profile-{{ v.video_id }}">Profile</label>
+          <select id="profile-{{ v.video_id }}" name="profile_id">
+            {% for p in profile_options %}
+              <option value="{{ p.id }}" {% if p.id == v.profile_id %}selected{% endif %}>
+                {{ p.name }}{% if p.is_default %} (default){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
       <div class="sub" style="margin-top:.7rem">
         Saving renames the file, rewrites the NFO and refreshes Jellyfin.
+        Changing the profile does not re-download on its own — use Redownload
+        for that.
       </div>
       <div class="actions" style="margin-top:.7rem">
         <button type="button"
